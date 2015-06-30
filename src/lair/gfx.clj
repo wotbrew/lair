@@ -59,8 +59,9 @@
     (draw-entity!* batch m e x y w h)))
 
 (defn draw-map!
-  [batch m map]
-  (pos/sort-run! m map
-    (fn [[x y] layer e]
-      (draw-entity! batch m e (* x 32) (* y 32) 32 32))))
+  [batch m map cell-size]
+  (when-let [[cw ch] cell-size]
+    (pos/sort-run! m map
+      (fn [[x y] layer e]
+        (draw-entity! batch m e (* x cw) (* y ch) cw ch)))))
 

@@ -1,7 +1,8 @@
 (ns lair.gdx
   "Contains LibGDX primitives we will use to build the game"
   (:require [lair.gdx.cam :as cam]
-            [lair.gdx.pixmap :as pixmap])
+            [lair.gdx.pixmap :as pixmap]
+            [lair.gdx.input :as input])
   (:import (com.badlogic.gdx.files FileHandle)
            (java.io File)
            (java.net URL)
@@ -194,18 +195,20 @@
 (defmacro with-font-color
   "Perform the body using the given font color"
   [font color & body]
-  `(let [old# (.getColor font)]
-     (set-font-color! font ~color)
+  `(let [font# ~font
+         old# (.getColor font#)]
+     (set-font-color! font# ~color)
      ~@body
-     (set-font-color! font old#)))
+     (set-font-color! font# old#)))
 
 (defmacro with-color
   "Perform any sprite batch operations in the body using the given color"
   [batch color & body]
-  `(let [old# (.getColor batch)]
-     (set-color! batch ~color)
+  `(let [batch# ~batch
+         old# (.getColor batch#)]
+     (set-color! batch# ~color)
      ~@body
-     (set-color! batch old#)))
+     (set-color! batch# old#)))
 
 (defn camera
   "Creates a new orthographic camera"
@@ -246,6 +249,13 @@
   ([batch font string x y w]
    (.drawWrapped font batch string (float x) (float y) (float w))))
 
+(defn input
+  ([]
+   (input nil))
+  ([last]
+    (input last (input/current)))
+  ([last current]
+    (input/next-input last current)))
 
 (def ^:dynamic *on-render-thread* false)
 

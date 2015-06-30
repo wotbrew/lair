@@ -1,0 +1,7 @@
+{:down {:w [:cam-up]
+        :a [:cam-left]
+        :d [:cam-right]
+        :s [:cam-down]
+        :lshift [:modifier-down]}
+ :hit {:lshift [:modifier-up]
+       :left [:select]}}

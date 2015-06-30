@@ -1,0 +1,5 @@
+{:cam-speed 1.0
+ :cam-modifier-speed 3.0
+ :cam-constant-factor 500
+
+ :cell-size [32 32]}

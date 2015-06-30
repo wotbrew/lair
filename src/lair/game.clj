@@ -19,9 +19,17 @@
   [m e]
   (attr/remove m e :selected?))
 
+(defn can-select?
+  [m e]
+  (let [atts (attr/all m e)]
+    (and (not (:selected? atts))
+         (isa? (:type atts) :creature))))
+
 (defn select
   [m e]
-  (attr/add m e :selected? true))
+  (if (can-select? m e)
+    (attr/add m e :selected? true)
+    m))
 
 (defn selected
   [m]
