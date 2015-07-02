@@ -1,5 +1,6 @@
 (ns lair.game.pos
   (:require [lair.game.attr :as attr]
+            [lair.rect :as rect]
             [lair.util :as util]))
 
 ;;layers
@@ -71,3 +72,18 @@
   ([m map]
     (-> m ::mp (get map) vals)))
 
+(defn in-points
+  ([m map points]
+   (mapcat #(at m map %) points))
+  ([m map layer points]
+   (mapcat #(at m map % layer) points)))
+
+(defn in
+  ([m map [x y w h]]
+   (in m map x y w h))
+  ([m map x y w h]
+   (in-points m map (rect/points x y w h)))
+  ([m map layer [x y w h]]
+   (in m map layer x y w h))
+  ([m map layer x y w h]
+   (in-points m map layer (rect/points x y w h))))

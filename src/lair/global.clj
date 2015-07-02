@@ -2,7 +2,9 @@
   (:require [lair.gdx :as gdx]
             [lair.game :as game]
             [lair.game.pos :as pos]
+            [lair.game.attr :as attr]
             [lair.gdx.cam :as cam]
+            [lair.rect :as rect]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.tools.logging :refer [error warn info]]))
@@ -12,8 +14,8 @@
 
 (defonce batch (delay @(gdx/go (gdx/batch))))
 (defonce font (delay @(gdx/go (gdx/flipped-font))))
-(defonce game-camera (delay @(gdx/go (gdx/flipped-camera 800 600))))
-(defonce ui-camera (delay @(gdx/go (gdx/flipped-camera 800 600))))
+(def game-camera (delay @(gdx/go (gdx/flipped-camera 800 600))))
+(def ui-camera (delay @(gdx/go (gdx/flipped-camera 800 600))))
 
 (def input (atom {}))
 (def input-modifier (atom false))
@@ -24,7 +26,17 @@
                        [m id2] (game/creature m)]
                    (-> m
                        (pos/put id [0 0] :foo pos/object-layer)
-                       (pos/put id2 [4 4] :foo pos/object-layer)))))
+                       (pos/put id2 [6 4] :foo pos/object-layer)
+                       (attr/add 0 :sprite :goblin-slave)))))
+
+(def unit-rect (vector 0 0 0 0))
+(def lasso (atom unit-rect))
+
+(defn lassoing?
+  []
+  (let [[_ _ w h] @lasso]
+    (and (pos? w)
+         (pos? h))))
 
 (defn send-game
   [f & args]
@@ -117,6 +129,16 @@
   []
   (game/selected @game))
 
+(defn select-only!
+  [e]
+  (send-game game/select-only e))
+
+;; API - Questions
+
+(defn creature?
+  [e]
+  (game/creature? @game e))
+
 ;; INPUT - MOUSE
 
 (defn mouse-screen-pixel
@@ -133,6 +155,20 @@
   (let [[x y] (mouse-world-pixel)
         [cw ch] (ensure-cell-size)]
     (vector (int (/ x cw)) (int (/ y ch)))))
+
+(defn at-mouse
+  ([]
+   (pos/at @game :foo (mouse-world)))
+  ([layer]
+   (pos/at @game :foo (mouse-world) layer))
+  ([layer index]
+   (pos/at @game :foo (mouse-world) layer index)))
+
+(defn creature-at-mouse
+  []
+  (->> (at-mouse pos/object-layer)
+       (filter creature?)
+       first))
 
 ;; INPUT - HANDLERS
 
@@ -168,6 +204,36 @@
   [_]
   (shift-cam! (current-cam-speed) 0))
 
+(defmethod handle! :select
+  [_]
+  (when-let [e (creature-at-mouse)]
+    (if @input-modifier
+      (select! e)
+      (select-only! e))))
+
+(defmethod handle! :lasso
+  [_]
+  (let [[mx my] (mouse-screen-pixel)]
+    (if (lassoing?)
+      (swap! lasso
+             #(let [[x y _ _ ox oy] %
+                    w (Math/abs (- mx ox))
+                    h (Math/abs (- my oy))
+                    x (min ox mx)
+                    y (min oy my)]
+                (vector x y w h ox oy)))
+      (reset! lasso (vector mx my 1 1 mx my)))))
+
+(defmethod handle! :release-lasso
+  [_]
+  (let [r @lasso
+        [x y] r
+        [x y] (cam/unproject @game-camera x y)
+        r (assoc r 0 x 1 y)
+        xs (pos/in @game :foo pos/object-layer (rect/scale r (/ 1 32)))]
+    (doseq [e xs]
+      (select! e))
+    (reset! lasso unit-rect)))
 
 (defn handle-input!
   [input]

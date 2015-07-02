@@ -13,6 +13,10 @@
   (create m {:type :creature
              :sprite :goblin-slave}))
 
+(defn creature?
+  [m e]
+  (= (attr/find m e :type) :creature))
+
 ;; SELECTION
 
 (defn unselect
@@ -34,3 +38,12 @@
 (defn selected
   [m]
   (attr/with m :selected? true))
+
+(defn unselect-all
+  [m]
+  (reduce unselect m (selected m)))
+
+(defn select-only
+  [m e]
+  (-> (unselect-all m)
+      (select e)))

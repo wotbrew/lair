@@ -21,6 +21,7 @@
     (let [batch @global/batch
           font @global/font
           game-camera @global/game-camera
+          ui-camera @global/ui-camera
           game @global/game
           input (swap! global/input gdx/input)]
       (global/handle-input! input)
@@ -30,9 +31,17 @@
         (gdx/with-camera
           batch
           game-camera
-          (gfx/draw-map! batch game :foo (global/ensure-cell-size)))))
+          (gfx/draw-map! batch game :foo (global/ensure-cell-size))))
+      (cam/update! ui-camera)
+      (gdx/with-batch
+        batch
+        (gdx/with-camera
+          batch
+          ui-camera
+          (gfx/draw-box! batch @global/lasso :green))))
     (catch Throwable e
       (error e "An error occurred rendering frame")
+      (println e)
       (throw e))))
 
 (defn begin-loop!

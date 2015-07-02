@@ -2,6 +2,7 @@
         :a [:cam-left]
         :d [:cam-right]
         :s [:cam-down]
-        :lshift [:modifier-down]}
+        :lshift [:modifier-down]
+        :left [:lasso]}
  :hit {:lshift [:modifier-up]
-       :left [:select]}}
+       :left [:select :release-lasso]}}
