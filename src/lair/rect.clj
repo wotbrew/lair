@@ -1,5 +1,7 @@
 (ns lair.rect)
 
+(def rect vector)
+
 (defn intersects?
   ([[x1 y1 w1 h1] [x2 y2 w2 h2]]
    (intersects? x1 y1 (or w1 1) (or h1 1) x2 y2 (or w2 1) (or h2 1)))
@@ -13,9 +15,9 @@
   ([[x y w h] n]
    (scale x y w h n))
   ([x y w h n]
-   (vector (int (* x n)) (int (* y n)) (int (* w n)) (int (* h n)))))
+   (rect (int (* x n)) (int (* y n)) (int (* w n)) (int (* h n)))))
 
-(defn point
+(defn points
   ([[x y w h]]
    (points x y w h))
   ([x y w h]
