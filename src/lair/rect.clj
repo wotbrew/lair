@@ -15,7 +15,7 @@
   ([x y w h n]
    (vector (int (* x n)) (int (* y n)) (int (* w n)) (int (* h n)))))
 
-(defn point
+(defn points
   ([[x y w h]]
    (points x y w h))
   ([x y w h]
