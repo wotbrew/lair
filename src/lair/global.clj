@@ -115,6 +115,12 @@
        (:cam-constant-factor settings)
        (gdx/delta))))
 
+(defn unproject
+  [pt-or-rect]
+  (let [[x y] pt-or-rect
+        [xc yc] (cam/unproject @game-camera x y)]
+    (assoc pt-or-rect 0 xc 1 yc)))
+
 ;; API - SELECTION
 
 (defn select!
@@ -217,8 +223,8 @@
     (if (lassoing?)
       (swap! lasso
              #(let [[x y _ _ ox oy] %
-                    w (Math/abs (- mx ox))
-                    h (Math/abs (- my oy))
+                    w (Math/abs (int (- mx ox)))
+                    h (Math/abs (int (- my oy)))
                     x (min ox mx)
                     y (min oy my)]
                 (vector x y w h ox oy)))
@@ -226,13 +232,11 @@
 
 (defmethod handle! :release-lasso
   [_]
-  (let [r @lasso
-        [x y] r
-        [x y] (cam/unproject @game-camera x y)
-        r (assoc r 0 x 1 y)
-        xs (pos/in @game :foo pos/object-layer (rect/scale r (/ 1 32)))]
-    (doseq [e xs]
-      (select! e))
+  (let [[_ _ w h :as r] (unproject @lasso)
+        xs (when (< 10 w) (< 10 h)
+             (pos/in @game :foo pos/object-layer (rect/scale r (/ 1 32))))]
+    (when xs
+      (send-game #(-> (game/unselect-all %) (game/select-many xs))))
     (reset! lasso unit-rect)))
 
 (defn handle-input!

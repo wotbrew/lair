@@ -47,3 +47,7 @@
   [m e]
   (-> (unselect-all m)
       (select e)))
+
+(defn select-many
+  [m coll]
+  (reduce select m coll))

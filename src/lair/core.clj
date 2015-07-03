@@ -1,3 +1,8 @@
+;; GO FASTER STRIPES
+(require '[clj-tuple :as tuple])
+(alter-var-root #'clojure.core/vector (constantly tuple/vector))
+(alter-var-root #'clojure.core/hash-map (constantly tuple/hash-map))
+
 (ns lair.core
   (:require [clj-tuple :as tuple]
             [lair.gdx :as gdx]
@@ -5,11 +10,6 @@
             [lair.global :as global]
             [clojure.tools.logging :refer [error info warn]]
             [lair.gdx.cam :as cam]))
-
-;; GO FASTER STRIPES
-
-(alter-var-root #'clojure.core/vector (constantly tuple/vector))
-(alter-var-root #'clojure.core/hash-map (constantly tuple/hash-map))
 
 
 ;; MAIN LOOP
