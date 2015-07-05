@@ -1,7 +1,9 @@
 (ns lair.point
-  (:require [lair.util :as util]))
+  (:require [lair.util :as util]
+            [clj-tuple :as tuple])
+  (:import [java.util PriorityQueue HashSet]))
 
-(def point vector)
+(def point tuple/vector)
 
 (defn add
   ([[x y] [x2 y2]]
@@ -42,6 +44,20 @@
   ([x y]
    (map #(add % x y) directions)))
 
+(defn diagonal?
+  [[x y] [x2 y2]]
+  (let [a (zero? (- x x2))
+        b (zero? (- y y2))]
+    (not (util/xor a b))))
+
+(defn manhattan
+  ([[x y] [x2 y2]]
+    (manhattan x y x2 y2))
+  ([x y x2 y2]
+   (+ (Math/abs (int (- x x2)))
+      (Math/abs (int (- y y2))))))
+
+;;path finding
 (deftype A*Node [pt ^int g ^int h parent]
   Comparable
   (compareTo [this x]
@@ -49,46 +65,37 @@
              (let [^A*Node x x]
                (+ (.g x) (.h x))))))
 
-(import '[java.util PriorityQueue HashSet])
-
-(defn diagonal?
-  [[x y] [x2 y2]]
-  (let [a (zero? (- x x2))
-        b (zero? (- y y2))]
-    (not (util/xor a b))))
-
 (defn a*-g
   [a b]
   (if (diagonal? a (.pt ^A*Node b))
     1.4
     1))
 
-(defn a*-h
-  [[x y] [x2 y2]]
-  (+ (Math/abs (int (- x x2)))
-     (Math/abs (int (- y y2)))))
+(def a*-h manhattan)
 
 (defn a*
-  [pred x y x2 y2]
-  (let [open-q (PriorityQueue.)
-        closed-s (HashSet.)
-        goal (point x2 y2)
-        current-v (volatile! nil)
-        f (comp (filter pred)
-                (filter #(not (.contains closed-s %)))
-                (map #(A*Node. % (a*-g % @current-v) (a*-h % goal) @current-v)))
-        reducing (completing #(.add open-q %2))]
-    (.add open-q (A*Node. (point x y) 0 0 nil))
-    (loop []
-      (when-let [^A*Node current (.poll open-q)]
-        (if (= (.pt current) goal)
-          (into (list)
-                (comp (take-while some?)
-                      (map #(.pt ^A*Node %)))
-                (iterate #(.parent ^A*Node %) current))
-          (do
-            (.add closed-s (.pt current))
-            (vreset! current-v current)
-            (let [adj (adjacent (.pt current))]
-              (transduce f reducing nil adj)
-              (recur))))))))
+  ([pred [x y] [x2 y2]]
+    (a* pred x y x2 y2))
+  ([pred x y x2 y2]
+   (let [open-q (PriorityQueue.)
+         closed-s (HashSet.)
+         goal (point x2 y2)
+         current-v (volatile! nil)
+         f (comp (filter pred)
+                 (filter #(not (.contains closed-s %)))
+                 (map #(A*Node. % (a*-g % @current-v) (a*-h % goal) @current-v)))
+         reducing (completing #(.add open-q %2))]
+     (.add open-q (A*Node. (point x y) 0 0 nil))
+     (loop []
+       (when-let [^A*Node current (.poll open-q)]
+         (if (= (.pt current) goal)
+           (into (list)
+                 (comp (take-while some?)
+                       (map #(.pt ^A*Node %)))
+                 (iterate #(.parent ^A*Node %) current))
+           (do
+             (.add closed-s (.pt current))
+             (vreset! current-v current)
+             (let [adj (adjacent (.pt current))]
+               (transduce f reducing nil adj)
+               (recur)))))))))

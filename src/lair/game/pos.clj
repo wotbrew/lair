@@ -8,7 +8,9 @@
 (def item-layer 200000)
 (def wall-layer 300000)
 (def decor-layer 400000)
-(def object-layer 500000)
+(def selection-layer 500000)
+(def object-layer 600000)
+(def flag-layer 700000)
 
 (defn index
   [m e map pt layer index]

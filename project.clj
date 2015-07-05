@@ -11,6 +11,7 @@
                  [com.stuartsierra/component "0.2.1"]
                  [clj-tuple "0.2.1"]
                  [potemkin "0.3.13"]
+                 [overtone/at-at "1.2.0"]
                  [com.badlogicgames.gdx/gdx "1.5.0"]
                  [com.badlogicgames.gdx/gdx-backend-lwjgl "1.5.0"]
                  [com.badlogicgames.gdx/gdx-platform "1.5.0"

@@ -1,8 +1,3 @@
-;; GO FASTER STRIPES
-(require '[clj-tuple :as tuple])
-(alter-var-root #'clojure.core/vector (constantly tuple/vector))
-(alter-var-root #'clojure.core/hash-map (constantly tuple/hash-map))
-
 (ns lair.core
   (:require [clj-tuple :as tuple]
             [lair.gdx :as gdx]
@@ -11,9 +6,13 @@
             [clojure.tools.logging :refer [error info warn]]
             [lair.gdx.cam :as cam]))
 
+;; GO FASTER STRIPES
+(require '[clj-tuple :as tuple])
+(alter-var-root #'clojure.core/vector (constantly tuple/vector))
+(alter-var-root #'clojure.core/hash-map (constantly tuple/hash-map))
+
 
 ;; MAIN LOOP
-
 (defn frame!
   []
   (try
@@ -38,6 +37,8 @@
         (gdx/with-camera
           batch
           ui-camera
+          (gdx/draw-text! batch font (str (gdx/fps)) 0 0)
+          (gdx/draw-text! batch font (str (global/mouse-world)) 0 16)
           (gfx/draw-box! batch @global/lasso :green))))
     (catch Throwable e
       (error e "An error occurred rendering frame")

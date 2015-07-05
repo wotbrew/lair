@@ -3,11 +3,16 @@
             [lair.game :as game]
             [lair.game.pos :as pos]
             [lair.game.attr :as attr]
+            [lair.game.library :as lib]
             [lair.gdx.cam :as cam]
             [lair.rect :as rect]
+            [lair.point :as point]
+            [overtone.at-at :as at]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.tools.logging :refer [error warn info]]))
+            [clojure.tools.logging :refer [error warn info]])
+  (:import (clojure.lang Agent)
+           (java.util.concurrent Executor ExecutorService)))
 
 
 ;; STATE
@@ -22,8 +27,8 @@
 
 (def settings (atom (edn/read-string (slurp (io/resource "settings.edn")))))
 
-(def game (agent (let [[m id] (game/creature {})
-                       [m id2] (game/creature m)]
+(def game (agent (let [[m id] (game/create {} lib/creature)
+                       [m id2] (game/create m lib/creature)]
                    (-> m
                        (pos/put id [0 0] :foo pos/object-layer)
                        (pos/put id2 [6 4] :foo pos/object-layer)
@@ -33,10 +38,12 @@
 (def lasso (atom unit-rect))
 
 (defn lassoing?
-  []
-  (let [[_ _ w h] @lasso]
-    (and (pos? w)
-         (pos? h))))
+  ([]
+    (lassoing? 1 1))
+  ([min-w min-h]
+   (let [[_ _ w h] @lasso]
+     (and (<= min-w w)
+          (<= min-h h)))))
 
 (defn send-game
   [f & args]
@@ -141,9 +148,13 @@
 
 ;; API - Questions
 
+(defn entity-isa?
+  [e type]
+  (game/entity-isa? @game e type))
+
 (defn creature?
   [e]
-  (game/creature? @game e))
+  (entity-isa? e :creature))
 
 ;; INPUT - MOUSE
 
@@ -154,7 +165,7 @@
 (defn mouse-world-pixel
   []
   (let [[x y] (mouse-screen-pixel)]
-    (cam/unproject @game-camera x y)))
+    @(gdx/go (cam/unproject @game-camera x y))))
 
 (defn mouse-world
   []
@@ -175,6 +186,27 @@
   (->> (at-mouse pos/object-layer)
        (filter creature?)
        first))
+
+;; API - PATHING
+
+(def ^ExecutorService path-executor Agent/pooledExecutor)
+
+(defn path
+  ([[x y] [x2 y2]]
+    (path x y x2 y2))
+  ([x y x2 y2]
+    (let [g @game
+          pred #(not (pos/at g :foo % pos/object-layer))]
+      (if (pred (point/point x2 y2))
+        (let [^Callable f #(point/a* pred x y x2 y2)]
+          (.submit path-executor f))
+        (delay nil)))))
+
+;; API - CREATING STUFF
+
+(defn put-create-many!
+  [attrs map pts]
+  (send-game game/put-create-many attrs map pts))
 
 ;; INPUT - HANDLERS
 
@@ -212,17 +244,18 @@
 
 (defmethod handle! :select
   [_]
-  (when-let [e (creature-at-mouse)]
-    (if @input-modifier
-      (select! e)
-      (select-only! e))))
+  (when-not (lassoing? 10 10)
+    (if-let [e (creature-at-mouse)]
+      (if @input-modifier
+        (select! e)
+        (select-only! e)))))
 
 (defmethod handle! :lasso
   [_]
   (let [[mx my] (mouse-screen-pixel)]
     (if (lassoing?)
       (swap! lasso
-             #(let [[x y _ _ ox oy] %
+             #(let [[_ _ _ _ ox oy] %
                     w (Math/abs (int (- mx ox)))
                     h (Math/abs (int (- my oy)))
                     x (min ox mx)
@@ -247,3 +280,21 @@
   (doseq [k (:hit input)
           c (-> commands :hit k)]
     (handle! c)))
+
+;; TASKS
+
+(defonce task-pool (at/mk-pool))
+
+(at/stop-and-reset-pool! task-pool)
+
+;; TASKS - FLAGS
+
+(defn refresh-flags!
+  []
+  (when-let [e (first (selected))]
+    (when-let [pos (pos/of @game e)]
+      (let [path (rest @(path (:pt pos) (mouse-world)))]
+        (send-game #(-> (game/clear % (game/by-type-of % lib/yellow-flag))
+                        (game/put-create-many lib/yellow-flag (:map pos) path)))))))
+
+(at/every 125 refresh-flags! task-pool)

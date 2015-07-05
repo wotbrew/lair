@@ -6,7 +6,7 @@
   (:import (com.badlogic.gdx.files FileHandle)
            (java.io File)
            (java.net URL)
-           (com.badlogic.gdx.graphics Texture GL20 Color OrthographicCamera)
+           (com.badlogic.gdx.graphics Texture GL20 Color OrthographicCamera Camera)
            (com.badlogic.gdx.graphics.g2d BitmapFont TextureRegion SpriteBatch)
            (com.badlogic.gdx Gdx ApplicationListener)
            (java.util List Map)

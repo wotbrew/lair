@@ -1,6 +1,7 @@
-(ns lair.rect)
+(ns lair.rect
+  (:require [clj-tuple :as tuple]))
 
-(def rect vector)
+(def rect tuple/vector)
 
 (defn intersects?
   ([[x1 y1 w1 h1] [x2 y2 w2 h2]]
