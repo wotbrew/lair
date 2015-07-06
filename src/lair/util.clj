@@ -11,6 +11,7 @@
   ([a b & more]
    `(xor  (xor ~a ~b) (xor ~@more))))
 
+(def vec-conj (fnil conj []))
 (def set-conj (fnil conj #{}))
 (def sorted-assoc (fnil assoc (sorted-map)))
 

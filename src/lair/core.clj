@@ -3,6 +3,7 @@
             [lair.gdx :as gdx]
             [lair.gfx :as gfx]
             [lair.global :as global]
+            [lair.event :as event]
             [clojure.tools.logging :refer [error info warn]]
             [lair.gdx.cam :as cam]))
 
@@ -11,6 +12,12 @@
 (alter-var-root #'clojure.core/vector (constantly tuple/vector))
 (alter-var-root #'clojure.core/hash-map (constantly tuple/hash-map))
 
+;; EVENTS
+(defn fire-events!
+  []
+  (send global/game #(let [events (:events %)]
+                      (event/publish! events)
+                      (dissoc % :events))))
 
 ;; MAIN LOOP
 (defn frame!
@@ -23,6 +30,8 @@
           ui-camera @global/ui-camera
           game @global/game
           input (swap! global/input gdx/input)]
+      (fire-events!)
+      (event/publish! (assoc input :type :input))
       (global/handle-input! input)
       (cam/update! game-camera)
       (gdx/with-batch

@@ -31,11 +31,11 @@
                        [m id2] (game/create m lib/creature)]
                    (-> m
                        (pos/put id [0 0] :foo pos/object-layer)
-                       (pos/put id2 [6 4] :foo pos/object-layer)
-                       (attr/add 0 :sprite :goblin-slave)))))
+                       (pos/put id2 [6 4] :foo pos/object-layer)))))
 
 (def unit-rect (vector 0 0 0 0))
 (def lasso (atom unit-rect))
+(def ai-procs (atom {}))
 
 (defn lassoing?
   ([]
@@ -162,16 +162,26 @@
   []
   (:mouse-point @input))
 
+(defn world-pixel
+  ([[x y]]
+   (world-pixel x y))
+  ([x y]
+   @(gdx/go (cam/unproject @game-camera x y))))
+
 (defn mouse-world-pixel
   []
-  (let [[x y] (mouse-screen-pixel)]
-    @(gdx/go (cam/unproject @game-camera x y))))
+  (world-pixel (mouse-screen-pixel)))
+
+(defn world-point
+  ([[x y]]
+    (world-point x y))
+  ([x y]
+   (let [[cw ch] (ensure-cell-size)]
+     (vector (int (/ x cw)) (int (/ y ch))))))
 
 (defn mouse-world
   []
-  (let [[x y] (mouse-world-pixel)
-        [cw ch] (ensure-cell-size)]
-    (vector (int (/ x cw)) (int (/ y ch)))))
+  (world-point (mouse-world-pixel)))
 
 (defn at-mouse
   ([]
@@ -298,3 +308,4 @@
                         (game/put-create-many lib/yellow-flag (:map pos) path)))))))
 
 (at/every 125 refresh-flags! task-pool)
+

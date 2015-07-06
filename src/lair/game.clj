@@ -1,6 +1,7 @@
 (ns lair.game
   (:require [lair.game.attr :as attr]
-            [lair.game.pos :as pos]))
+            [lair.game.pos :as pos]
+            [lair.util :as util]))
 
 ;; QUERY
 
@@ -21,20 +22,32 @@
   [m e type]
   (isa? (attr/find m e :type) type))
 
+;; EVENTS
+
+(defn event
+  [m event-map]
+  (update m :events util/vec-conj event-map))
+
 ;; CREATE
 
 (defn create
   [m attrs]
   (let [id (:id m 0)
-        m (-> (attr/merge m id attrs {:id id})
-              (update :id (fnil inc 0)))]
+        attrs (assoc attrs :id id)
+        m (-> (attr/merge m id attrs)
+              (update :id (fnil inc 0))
+              (event {:type :created
+                      :entity id
+                      :attrs attrs}))]
     (vector m id)))
 
 (defn delete
   [m e]
   (-> m
       (pos/unput e)
-      (attr/clear e)))
+      (attr/clear e)
+      (event {:type :deleted
+              :entity e})))
 
 (defn clear
   [m ents]
@@ -83,9 +96,13 @@
   ([m e pt map]
     (put m e pt map (default-layer m e)))
   ([m e pt map layer]
-    (pos/put m e pt map layer))
-  ([m e pt map layer index]
-    (pos/put m e pt map layer index)))
+   (-> (pos/put m e pt map layer)
+       (event {:type :put
+               :entity e
+               :previous (pos/of m e)
+               :pt pt
+               :map map
+               :layer layer}))))
 
 (defn put-create
   ([m attrs pt map]
