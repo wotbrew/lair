@@ -11,4 +11,16 @@
 (def creature
   {:sprite :goblin-slave
    :type :creature
+   :solid? true
    :default-layer pos/object-layer})
+
+(def floor
+  {:sprite :castle/floor
+   :type :floor
+   :default-layer pos/floor-layer})
+
+(def wall
+  {:sprite :castle/wall1
+   :type :wall
+   :solid? true
+   :default-layer pos/wall-layer})

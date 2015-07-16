@@ -25,3 +25,17 @@
    (for [x (range x (+ x w))
          y (range y (+ y h))]
      (vector x y))))
+
+(defn edges
+  ([[x y w h]]
+   (edges x y w h))
+  ([x y w h]
+   (concat
+    (for [x (range x (+ x w))
+          y [y (+ y h -1)]]
+      (vector x y))
+
+    (for [y (range y (+ y h))
+          x [x (+ x h -1)]]
+      (vector x y))
+   )))

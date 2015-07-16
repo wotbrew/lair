@@ -1,6 +1,7 @@
 (ns lair.game
   (:require [lair.game.attr :as attr]
             [lair.game.pos :as pos]
+            [lair.point :as point]
             [lair.util :as util]))
 
 ;; QUERY
@@ -88,6 +89,16 @@
   [m coll]
   (reduce select m coll))
 
+;; SOLIDITY
+
+(defn solid?
+  [m e]
+  (attr/find m e :solid?))
+
+(defn solid-at?
+  [m pt map]
+  (some #(solid? m %) (pos/at m map pt)))
+
 ;; MOVEMENT
 
 (defn put
@@ -96,13 +107,15 @@
   ([m e pt map]
     (put m e pt map (default-layer m e)))
   ([m e pt map layer]
-   (-> (pos/put m e pt map layer)
-       (event {:type :put
-               :entity e
-               :previous (pos/of m e)
-               :pt pt
-               :map map
-               :layer layer}))))
+   (if (solid-at? m pt map)
+     m
+     (-> (pos/put m e pt map layer)
+         (event {:type :put
+                 :entity e
+                 :previous (pos/of m e)
+                 :pt pt
+                 :map map
+                 :layer layer})))))
 
 (defn put-create
   ([m attrs pt map]
@@ -117,3 +130,11 @@
    (reduce #(put-create %1 attrs %2 map) m points))
   ([m attrs map layer points]
    (reduce #(put-create %1 attrs %2 map layer) m points)))
+
+(defn step
+  [m e pt]
+  (if-let [p (pos/pt m e)]
+    (if (point/adjacent? p pt)
+      (put m e pt)
+      m)
+    m))

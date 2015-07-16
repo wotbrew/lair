@@ -30,8 +30,11 @@
 (def game (agent (let [[m id] (game/create {} lib/creature)
                        [m id2] (game/create m lib/creature)]
                    (-> m
-                       (pos/put id [0 0] :foo pos/object-layer)
-                       (pos/put id2 [6 4] :foo pos/object-layer)))))
+                       (game/put-create-many lib/floor :foo (rect/points 0 0 16 16))
+                       (game/put-create-many lib/wall :foo (concat (rect/edges 0 0 16 16)
+                                                                   (map #(vector 5 %) (range 5))))
+                       (game/put id [1 1] :foo pos/object-layer)
+                       (game/put id2 [6 4] :foo pos/object-layer)))))
 
 (def unit-rect (vector 0 0 0 0))
 (def lasso (atom unit-rect))
@@ -197,20 +200,6 @@
        (filter creature?)
        first))
 
-;; API - PATHING
-
-(def ^ExecutorService path-executor Agent/pooledExecutor)
-
-(defn path
-  ([[x y] [x2 y2]]
-    (path x y x2 y2))
-  ([x y x2 y2]
-    (let [g @game
-          pred #(not (pos/at g :foo % pos/object-layer))]
-      (if (pred (point/point x2 y2))
-        (let [^Callable f #(point/a* pred x y x2 y2)]
-          (.submit path-executor f))
-        (delay nil)))))
 
 ;; API - CREATING STUFF
 
@@ -218,78 +207,43 @@
   [attrs map pts]
   (send-game game/put-create-many attrs map pts))
 
-;; INPUT - HANDLERS
 
-(def commands (edn/read-string (slurp (io/resource "commands.edn"))))
+;; API - POSITION
 
-(defmulti handle! identity)
+(defn pos-of
+  [e]
+  (pos/of @game e))
 
-(defmethod handle! :default
-  [x]
-  (warn "Unknown command:" x))
+(defn point-of
+  [e]
+  (:pt (pos-of e)))
 
-(defmethod handle! :modifier-down
-  [_]
-  (reset! input-modifier true))
+(defn put!
+  [e pt]
+  (send-game game/put e pt))
 
-(defmethod handle! :modifier-up
-  [_]
-  (reset! input-modifier false))
+(defn step!
+  [e pt]
+  (send-game game/step e pt))
 
-(defmethod handle! :cam-up
-  [_]
-  (shift-cam! 0 (* -1 (current-cam-speed))))
+;; API - PATHING
 
-(defmethod handle! :cam-down
-  [_]
-  (shift-cam! 0 (current-cam-speed)))
+(def ^ExecutorService path-executor Agent/pooledExecutor)
 
-(defmethod handle! :cam-left
-  [_]
-  (shift-cam! (* -1 (current-cam-speed)) 0))
-
-(defmethod handle! :cam-right
-  [_]
-  (shift-cam! (current-cam-speed) 0))
-
-(defmethod handle! :select
-  [_]
-  (when-not (lassoing? 10 10)
-    (if-let [e (creature-at-mouse)]
-      (if @input-modifier
-        (select! e)
-        (select-only! e)))))
-
-(defmethod handle! :lasso
-  [_]
-  (let [[mx my] (mouse-screen-pixel)]
-    (if (lassoing?)
-      (swap! lasso
-             #(let [[_ _ _ _ ox oy] %
-                    w (Math/abs (int (- mx ox)))
-                    h (Math/abs (int (- my oy)))
-                    x (min ox mx)
-                    y (min oy my)]
-                (vector x y w h ox oy)))
-      (reset! lasso (vector mx my 1 1 mx my)))))
-
-(defmethod handle! :release-lasso
-  [_]
-  (let [[_ _ w h :as r] (unproject @lasso)
-        xs (when (< 10 w) (< 10 h)
-             (pos/in @game :foo pos/object-layer (rect/scale r (/ 1 32))))]
-    (when xs
-      (send-game #(-> (game/unselect-all %) (game/select-many xs))))
-    (reset! lasso unit-rect)))
-
-(defn handle-input!
-  [input]
-  (doseq [k (:pressed input)
-          c (-> commands :down k)]
-    (handle! c))
-  (doseq [k (:hit input)
-          c (-> commands :hit k)]
-    (handle! c)))
+(defn path
+  ([e pt]
+   (if-let [p (pos-of e)]
+     (path (:map p) (:pt p) pt)
+     (delay nil)))
+  ([map [x y] [x2 y2]]
+    (path map x y x2 y2))
+  ([map x y x2 y2]
+    (let [g @game
+          pred #(not (game/solid-at? g % map))]
+      (if (pred (point/point x2 y2))
+        (let [^Callable f #(point/a* pred x y x2 y2)]
+          (.submit path-executor f))
+        (delay nil)))))
 
 ;; TASKS
 
@@ -301,11 +255,11 @@
 
 (defn refresh-flags!
   []
-  (when-let [e (first (selected))]
+  (if-let [e (first (selected))]
     (when-let [pos (pos/of @game e)]
-      (let [path (rest @(path (:pt pos) (mouse-world)))]
+      (let [path (rest @(path e (mouse-world)))]
         (send-game #(-> (game/clear % (game/by-type-of % lib/yellow-flag))
-                        (game/put-create-many lib/yellow-flag (:map pos) path)))))))
+                        (game/put-create-many lib/yellow-flag (:map pos) path)))))
+    (send-game #(game/clear % (game/by-type-of % lib/yellow-flag)))))
 
 (at/every 125 refresh-flags! task-pool)
-

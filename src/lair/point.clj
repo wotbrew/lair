@@ -44,6 +44,14 @@
   ([x y]
    (map #(add % x y) directions)))
 
+(defn adjacent?
+  ([[x y] [x2 y2]]
+   (adjacent? x y x2 y2))
+  ([x y x2 y2]
+   (and  (not (and (= x x2) (= y y2)))
+         (<= (Math/abs (- x x2)) 1)
+         (<= (Math/abs (- y y2)) 1))))
+
 (defn diagonal?
   [[x y] [x2 y2]]
   (let [a (zero? (- x x2))
@@ -72,7 +80,7 @@
     1))
 
 (def a*-h manhattan)
-
+(def ^:dynamic *max-path-iter* 1000)
 (defn a*
   ([pred [x y] [x2 y2]]
     (a* pred x y x2 y2))
@@ -86,16 +94,17 @@
                  (map #(A*Node. % (a*-g % @current-v) (a*-h % goal) @current-v)))
          reducing (completing #(.add open-q %2))]
      (.add open-q (A*Node. (point x y) 0 0 nil))
-     (loop []
-       (when-let [^A*Node current (.poll open-q)]
-         (if (= (.pt current) goal)
-           (into (list)
-                 (comp (take-while some?)
-                       (map #(.pt ^A*Node %)))
-                 (iterate #(.parent ^A*Node %) current))
-           (do
-             (.add closed-s (.pt current))
-             (vreset! current-v current)
-             (let [adj (adjacent (.pt current))]
-               (transduce f reducing nil adj)
-               (recur)))))))))
+     (loop [i (int 0)]
+       (when (< i *max-path-iter*)
+         (when-let [^A*Node current (.poll open-q)]
+           (if (= (.pt current) goal)
+             (into (list)
+                   (comp (take-while some?)
+                         (map #(.pt ^A*Node %)))
+                   (iterate #(.parent ^A*Node %) current))
+             (do
+               (.add closed-s (.pt current))
+               (vreset! current-v current)
+               (let [adj (adjacent (.pt current))]
+                 (transduce f reducing nil adj)
+                 (recur (inc i)))))))))))

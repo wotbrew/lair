@@ -16,7 +16,6 @@
                  [com.badlogicgames.gdx/gdx-backend-lwjgl "1.5.0"]
                  [com.badlogicgames.gdx/gdx-platform "1.5.0"
                   :classifier "natives-desktop"]
-                 [log4j/log4j "1.2.17"]
-                 [manifold "0.1.0"]]
+                 [log4j/log4j "1.2.17"]]
   :repositories [["sonatype"
                   "https://oss.sonatype.org/content/repositories/releases/"]])

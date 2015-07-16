@@ -5,19 +5,27 @@
             [lair.global :as global]
             [lair.event :as event]
             [clojure.tools.logging :refer [error info warn]]
-            [lair.gdx.cam :as cam]))
+            [lair.gdx.cam :as cam])
+  (:import [java.util.concurrent ExecutorService]))
 
 ;; GO FASTER STRIPES
 (require '[clj-tuple :as tuple])
 (alter-var-root #'clojure.core/vector (constantly tuple/vector))
 (alter-var-root #'clojure.core/hash-map (constantly tuple/hash-map))
 
+(def ^ExecutorService event-executor clojure.lang.Agent/pooledExecutor)
+
 ;; EVENTS
 (defn fire-events!
-  []
-  (send global/game #(let [events (:events %)]
-                      (event/publish! events)
-                      (dissoc % :events))))
+  [input]
+  (let [game-events (promise)
+        f (fn []
+            (event/publish! @game-events)
+            (event/publish-input! input))]
+    (send global/game #(let [events (:events %)]
+                         (deliver game-events events)
+                         (dissoc % :events)))
+    (.submit event-executor ^Callable f)))
 
 ;; MAIN LOOP
 (defn frame!
@@ -30,9 +38,8 @@
           ui-camera @global/ui-camera
           game @global/game
           input (swap! global/input gdx/input)]
-      (fire-events!)
-      (event/publish! (assoc input :type :input))
-      (global/handle-input! input)
+      (fire-events! input)
+
       (cam/update! game-camera)
       (gdx/with-batch
         batch
