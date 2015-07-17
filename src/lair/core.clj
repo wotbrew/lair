@@ -2,6 +2,7 @@
   (:require [clj-tuple :as tuple]
             [lair.gdx :as gdx]
             [lair.gfx :as gfx]
+            [lair.ui :as ui]
             [lair.global :as global]
             [lair.event :as event]
             [clojure.tools.logging :refer [error info warn]]
@@ -53,9 +54,7 @@
         (gdx/with-camera
           batch
           ui-camera
-          (gdx/draw-text! batch font (str (gdx/fps)) 0 0)
-          (gdx/draw-text! batch font (str (global/mouse-world)) 0 16)
-          (gfx/draw-box! batch @global/lasso :green))))
+          (ui/draw-ui! batch game))))
     (catch Throwable e
       (error e "An error occurred rendering frame")
       (println e)

@@ -72,6 +72,10 @@
 
 ;; API - CAM
 
+(defn cam-size
+  []
+  (cam/size @game-camera))
+
 (defn move-cam!
   "Moves the game camera to the x, y pixel co-ordinates"
   ([[x y]]

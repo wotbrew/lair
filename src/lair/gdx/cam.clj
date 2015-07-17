@@ -9,6 +9,11 @@
         y
         0))
 
+(defn size
+  [^Camera cam]
+  (vector (int (.viewportWidth cam))
+          (int (.viewportHeight cam))))
+
 (defn default-pos
   [^Camera cam]
   (vector (/ (.viewportWidth cam) 2)
