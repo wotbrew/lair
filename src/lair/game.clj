@@ -76,6 +76,10 @@
   [m]
   (attr/with m :selected? true))
 
+(defn selected?
+  [m e]
+  (attr/find m e :selected?))
+
 (defn unselect-all
   [m]
   (reduce unselect m (selected m)))

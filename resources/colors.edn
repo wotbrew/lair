@@ -1,3 +1,4 @@
 {:white "ffffffff"
  :black "000000ff"
- :green "00ff00ff"}
+ :green "00ff00ff"
+ :gray "7f7f7fff"}
