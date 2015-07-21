@@ -12,6 +12,14 @@
        (and (<= x1 (+ x2 w2) (+ x1 w1))
             (<= y1 (+ y2 h2) (+ y1 h1))))))
 
+(defn contains-point?
+  ([[x y w h] [x2 y2]]
+   (contains-point? x y w h x2 y2))
+  ([[x y w h] x2 y2]
+   (contains-point? x y w h x2 y2))
+  ([x y w h x2 y2]
+   (intersects? x y w h x2 y2 1 1)))
+
 (defn scale
   ([[x y w h] n]
    (scale x y w h n))

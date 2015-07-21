@@ -2,11 +2,26 @@
   (:require [lair.global :as global]
             [lair.gdx :as gdx]
             [lair.gfx :as gfx]
+            [lair.rect :as rect]
             [lair.game :as game]
             [lair.game.attr :as attr]))
 
+(defn mouse-in?
+  [x y w h]
+  (let [[x2 y2] (global/mouse-screen-pixel)]
+    (rect/contains-point? x y w h x2 y2)))
+
 (defprotocol IDraw
   (draw! [this batch x y]))
+
+(defprotocol IClickable
+  (click-event [this]))
+
+(extend-type Object
+  IDraw
+  (draw! [this batch x y])
+  IClickable
+  (click-event [this]))
 
 (defrecord Label [x y text-fn font]
   IDraw
@@ -28,6 +43,9 @@
    `(label* ~x ~y (fn [] (str ~text)) ~font)))
 
 (defrecord Many [x y x-step y-step controls]
+  IClickable
+  (click-event [this]
+    (some click-event controls))
   IDraw
   (draw! [this batch x y]
     (loop [controls controls
@@ -122,6 +140,17 @@
   (gfx/draw-entity! batch m e (+ x 48) (+ y 48) 64 64))
 
 (defrecord PlayerPanel [x y w h]
+  IClickable
+  (click-event [this]
+    (when (mouse-in? x y w h)
+      (let [g @global/game]
+        (loop [i 0
+               players (take 3 (attr/with g :type :creature))]
+          (when (seq players)
+            (if (mouse-in? x (+ y (* i 192)) w h)
+              {:type :select-player
+               :index i}
+              (recur (inc i) (rest players))))))))
   IDraw
   (draw! [this batch x y]
     (let [g @global/game]
@@ -169,6 +198,12 @@
       (tiled x (- y 32) w 32 :blank)
       (tiled (- x 32) y 32 (+ y h) :blank)])))
 
+(defrecord GamePanel [x y w h]
+  IClickable
+  (click-event [this]
+    (if (mouse-in? x y w h)
+      :game-select
+      nil)))
 
 (defn create-main
   [width height]
@@ -183,23 +218,12 @@
             [(label (gdx/fps))
              (label (global/mouse-world))])
       (->Lasso :green)
-      (->Mouse)])))
+      (->Mouse)
+      (->GamePanel gx gy gw gh)])))
 
 (def ui (atom (delay @(gdx/go (create-main 1024 768)))))
-
-(defn draw-debug!
-  [batch x y]
-  (let [font @global/font]
-    (gdx/draw-text! batch font (str (gdx/fps)) x y)
-    (gdx/draw-text! batch font (str (global/mouse-world)) x (+ y 16))))
-
-(defn draw-lasso!
-  [batch]
-  (gfx/draw-box! batch @global/lasso :green))
 
 (defn draw-ui!
   [batch game]
   (when-let [c (deref @ui)]
-    (draw! c batch 0 0))
-  #_(draw-lasso! batch)
-  #_(draw-debug! batch 0 0))
+    (draw! c batch 0 0)))

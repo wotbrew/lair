@@ -4,6 +4,7 @@
             [lair.game
              [pos :as pos]
              [attr :as attr]]
+            [lair.ui :as ui]
             [lair.rect :as rect]
             [lair.ai :as ai]
             [clojure.edn :as edn]
@@ -48,7 +49,7 @@
   [_]
   (global/shift-cam! (global/current-cam-speed) 0))
 
-(defmethod handle! :select
+(defmethod handle! :game-select
   [_]
   (when-not (global/lassoing? 10 10)
     (if-let [e (global/creature-at-mouse)]
@@ -58,6 +59,16 @@
       (if-let [s (seq (global/selected))]
         (doseq [e s]
           (ai/remember! e :move-to (global/mouse-world)) )))))
+
+(defmethod handle! :select-player
+  [m]
+  (let [index (:index m)]
+    (println "selecting" index)))
+
+(defmethod handle! :select
+  [_]
+  (when-let [click-event (ui/click-event (deref @ui/ui))]
+    (handle! click-event)))
 
 (defmethod handle! :lasso
   [_]
