@@ -12,21 +12,21 @@
     (rect/contains-point? x y w h x2 y2)))
 
 (defprotocol IDraw
-  (draw! [this batch x y]))
+  (draw! [this batch x2 y2]))
 
 (defprotocol IClickable
-  (click-event [this]))
+  (click-event [this x2 y2]))
 
 (extend-type Object
   IDraw
   (draw! [this batch x y])
   IClickable
-  (click-event [this]))
+  (click-event [this x2 y2]))
 
 (defrecord Label [x y text-fn font]
   IDraw
-  (draw! [this batch x y]
-    (gdx/draw-text! batch font (text-fn) x y)))
+  (draw! [this batch x2 y2]
+    (gdx/draw-text! batch font (text-fn) (+ x x2) (+ y y2))))
 
 (defn label*
   ([x y text]
@@ -44,13 +44,13 @@
 
 (defrecord Many [x y x-step y-step controls]
   IClickable
-  (click-event [this]
-    (some click-event controls))
+  (click-event [this x2 y2]
+    (some #(click-event % (+ x x2) (+ y y2)) controls))
   IDraw
-  (draw! [this batch x y]
+  (draw! [this batch x2 y2]
     (loop [controls controls
-           x (int (+ x (:x this)))
-           y (int (+ y (:y this)))]
+           x (int (+ x x2))
+           y (int (+ y y2))]
       (when-let [[c & rst] (seq controls)]
         (draw! c batch x y)
         (recur rst (+ x x-step) (+ y y-step))))))
@@ -131,38 +131,51 @@
   (let [[rx ry rw rh] (right-rect width height)]
     (vector rx (+ ry rh 32) rw (- height (+ ry rh 32)))))
 
-(defrecord PlayerPanel [x y w h playern ap-label]
+(defrecord PlayerPanel [x y w h playern sub]
   IClickable
-  (click-event [this]
-    (when (mouse-in? x y w h)
+  (click-event [this x2 y2]
+    (when (mouse-in? (+ x x2) (+ y y2) w h)
       {:type  :select-player
        :index playern}))
   IDraw
   (draw! [this batch x2 y2]
     (let [m @global/game
-          e (game/playern m playern)]
+          e (game/playern m playern)
+          x (+ x x2)
+          y (+ y y2)]
       (when e
         (gfx/draw-box! batch x y (dec w) (dec h)
                        (if (game/selected? m e)
                          :green
                          :white))
-        (gfx/draw-entity! batch m e (+ x 48) (+ y 48) 64 64)))))
+        (gfx/draw-entity! batch m e (+ x 48) (+ y 48) 64 64)
+        (draw! sub batch x y)))))
+
+(defn player-resource-label
+  [x y resource playern]
+  (->>
+    (str (name resource) ": "
+         (when-let [e (global/playern playern)]
+           (int (game/amount-of @global/game e resource))))
+    (label x y)))
 
 (defn player-panel
   [x y w h playern]
   (map->PlayerPanel
-    {:x x
-     :y y
-     :w w
-     :h h
+    {:x       x
+     :y       y
+     :w       w
+     :h       h
      :playern playern
-     :ap-label (label x y "foobar")}))
+     :sub
+              (many 16 128 0 16
+                    [(player-resource-label 0 0 :hp playern)
+                     (player-resource-label 0 0 :ap playern)])}))
 
 (defn players-panel
   [x y w h startn]
   (let [n (int (/ h 192))]
     (many
-      192
       (into []
             (for [n (range startn n)]
               (player-panel x (+ (* n 192) y) w 192 n))))))
@@ -208,8 +221,8 @@
 
 (defrecord GamePanel [x y w h]
   IClickable
-  (click-event [this]
-    (if (mouse-in? x y w h)
+  (click-event [this x2 y2]
+    (if (mouse-in? (+ x x2) (+ y y2) w h)
       :select-game
       nil)))
 

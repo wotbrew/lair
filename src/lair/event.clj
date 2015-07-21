@@ -85,7 +85,7 @@
 
 (defmethod handle! :select
   [_]
-  (when-let [click-event (ui/click-event (deref @ui/ui))]
+  (when-let [click-event (ui/click-event (deref @ui/ui) 0 0)]
     (handle! click-event)))
 
 (defmethod handle! :lasso
