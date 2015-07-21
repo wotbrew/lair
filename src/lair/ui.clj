@@ -152,12 +152,14 @@
         (draw! sub batch x y)))))
 
 (defn player-resource-label
-  [x y resource playern]
-  (->>
-    (str (name resource) ": "
-         (when-let [e (global/playern playern)]
-           (int (game/amount-of @global/game e resource))))
-    (label x y)))
+  ([resource playern]
+    (player-resource-label 0 0 resource playern))
+  ([x y resource playern]
+   (->>
+     (str (name resource) ": "
+          (when-let [e (global/playern playern)]
+            (int (game/amount-of @global/game e resource))))
+     (label x y))))
 
 (defn player-panel
   [x y w h playern]
@@ -169,9 +171,16 @@
      :playern playern
      :sub     (many
                 [(label 16 16 (str "Entity: " (lair.global/playern playern)))
-                 (many 16 128 0 16
-                       [(player-resource-label 0 0 :hp playern)
-                        (player-resource-label 0 0 :ap playern)])])}))
+                 (many 16 116 0 18
+                       [(player-resource-label :hp playern)
+                        (player-resource-label :ap playern)
+                        (player-resource-label :sp playern)
+                        (player-resource-label :exp playern)])
+                 (many 72 116 0 18
+                       [(player-resource-label :enc playern)
+                        (player-resource-label :faith playern)
+                        (player-resource-label :fatigue playern)
+                        (player-resource-label :morale playern)])])}))
 
 (defn players-panel
   [x y w h startn]
