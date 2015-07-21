@@ -5,4 +5,16 @@
         :lshift [:modifier-down]
         :left [:lasso]}
  :hit {:lshift [:modifier-up]
-       :left [:select :release-lasso]}}
+       :left [:select :release-lasso]
+       :f1 [{:type :select-player
+             :index 0}]
+       :f2 [{:type :select-player
+             :index 1}]
+       :f3 [{:type :select-player
+             :index 2}]
+       :f4 [{:type :select-player
+             :index 3}]
+       :f5 [{:type :select-player
+             :index 4}]
+       :f6 [{:type :select-player
+             :index 5}]}}
