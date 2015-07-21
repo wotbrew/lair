@@ -12,6 +12,7 @@
   {:sprite :goblin-slave
    :type :creature
    :solid? true
+   :player? true
    :default-layer pos/object-layer})
 
 (def floor

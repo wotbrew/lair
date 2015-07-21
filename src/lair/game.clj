@@ -142,3 +142,9 @@
       (put m e pt)
       m)
     m))
+
+;; PLAYERS
+
+(defn players
+  [m]
+  (attr/with m :player? true))

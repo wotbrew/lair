@@ -49,21 +49,39 @@
   [_]
   (global/shift-cam! (global/current-cam-speed) 0))
 
-(defmethod handle! :game-select
-  [_]
-  (when-not (global/lassoing? 10 10)
-    (if-let [e (global/creature-at-mouse)]
-      (if @global/input-modifier
-        (global/select! e)
-        (global/select-only! e))
-      (if-let [s (seq (global/selected))]
-        (doseq [e s]
-          (ai/remember! e :move-to (global/mouse-world)) )))))
-
 (defmethod handle! :select-player
   [m]
-  (let [index (:index m)]
-    (println "selecting" index)))
+  (if (:index m)
+    (when-let [player (nth (seq (global/players)) (:index m) nil)]
+      (handle! {:type   :select-player
+                :entity player}))
+    (when-let [e (:entity m)]
+      (if @global/input-modifier
+        (global/select! e)
+        (global/select-only! e)))))
+
+(defmethod handle! :move-selected-to
+  [m]
+  (when-let [pt (:pt m)]
+    (doseq [e (global/selected)]
+      (ai/remember! e :move-to pt))))
+
+(defmethod handle! :move-selected-to-mouse
+  [m]
+  (handle! {:type :move-selected-to
+            :pt (global/mouse-world)}))
+
+(defmethod handle! :select-at-mouse
+  [m]
+  (if-let [e (global/creature-at-mouse)]
+    (handle! {:type :select-player
+              :entity e})
+    (handle! :move-selected-to-mouse)))
+
+(defmethod handle! :select-game
+  [_]
+  (when-not (global/lassoing? 10 10)
+    (handle! :select-at-mouse)))
 
 (defmethod handle! :select
   [_]

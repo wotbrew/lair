@@ -2,9 +2,17 @@
   (:require [lair.global :as global]
             [lair.util :as util]
             [lair.point :as point]
-            [clojure.tools.logging :refer [info]]
+            [clojure.tools.logging :refer [info error]]
             [clojure.core.async :as async :refer [<! >!]]))
 
+(defmacro go
+  [msg & body]
+  `(async/go
+     (try
+       ~@body
+       (catch Throwable e#
+         (error e# (format "An error occurred in ai thread (%s)" ~msg))
+         (throw e#)))))
 
 (def ai-threads (atom {}))
 (def ai-state (atom {}))
@@ -23,9 +31,9 @@
   [e]
   100)
 
-(defn remember!-path!
+(defn remember-path!
   [e goal]
-  (async/go
+  (go "remember-path!"
     (if-let [pth (seq @(global/path e goal))]
       (do
         (remember! e :path pth)
@@ -34,22 +42,22 @@
 
 (defn path-to!
   [e]
-  (async/go
+  (go "path-to!"
     (let [st (get @ai-state e)]
       (let [goal (:move-to st)
             path (:path st)
             path-goal (:path-goal st)]
         (cond
          (nil? goal) (forget! e :path)
-         (nil? path) (<! (remember!-path! e goal))
-         (not= goal path-goal) (<! (remember!-path! e goal))
+         (empty? path) (<! (remember-path! e goal))
+         (not= goal path-goal) (<! (remember-path! e goal))
 
          (not (point/adjacent? (first path) (global/point-of e)))
-         (<! (remember!-path! e goal)))))))
+         (<! (remember-path! e goal)))))))
 
 (defn step!
   [e]
-  (async/go
+  (go "step!"
     (let [st (get @ai-state e)]
       (when-let [path (seq (:path st))]
         (global/step! e (first path))
@@ -57,7 +65,7 @@
 
 (defn ai-tick
   [e]
-  (async/go
+  (go "ai-tick"
     (<! (path-to! e))
     (<! (step! e))
 

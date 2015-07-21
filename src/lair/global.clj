@@ -163,6 +163,10 @@
   [e]
   (entity-isa? e :creature))
 
+(defn players
+  []
+  (game/players @game))
+
 ;; INPUT - MOUSE
 
 (defn mouse-screen-pixel

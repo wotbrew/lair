@@ -147,7 +147,7 @@
         (loop [i 0
                players (take 3 (attr/with g :type :creature))]
           (when (seq players)
-            (if (mouse-in? x (+ y (* i 192)) w h)
+            (if (mouse-in? x (+ y (* i 192)) w 192)
               {:type :select-player
                :index i}
               (recur (inc i) (rest players))))))))
@@ -202,7 +202,7 @@
   IClickable
   (click-event [this]
     (if (mouse-in? x y w h)
-      :game-select
+      :select-game
       nil)))
 
 (defn create-main
