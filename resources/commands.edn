@@ -6,6 +6,7 @@
         :left [:lasso]}
  :hit {:lshift [:modifier-up]
        :left [:select :release-lasso]
+       :space [:debug-switch-time]
        :f1 [{:type :select-player
              :index 0}]
        :f2 [{:type :select-player

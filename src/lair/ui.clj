@@ -167,10 +167,11 @@
      :w       w
      :h       h
      :playern playern
-     :sub
-              (many 16 128 0 16
-                    [(player-resource-label 0 0 :hp playern)
-                     (player-resource-label 0 0 :ap playern)])}))
+     :sub     (many
+                [(label 16 16 (str "Entity: " (lair.global/playern playern)))
+                 (many 16 128 0 16
+                       [(player-resource-label 0 0 :hp playern)
+                        (player-resource-label 0 0 :ap playern)])])}))
 
 (defn players-panel
   [x y w h startn]

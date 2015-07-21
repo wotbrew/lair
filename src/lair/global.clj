@@ -137,6 +137,10 @@
 
 ;; API - TIME
 
+(defn turns?
+  []
+  (game/turns? @game))
+
 (defn into-turns
   []
   (send-game game/into-turns))
@@ -275,7 +279,7 @@
 
 (defn refresh-flags!
   []
-  (if-let [e (first (selected))]
+  (if-let [e (and (turns?) (first (selected)))]
     (when-let [pos (pos/of @game e)]
       (let [path (rest @(path e (mouse-world)))]
         (send-game #(-> (game/clear % (game/by-type-of % lib/yellow-flag))

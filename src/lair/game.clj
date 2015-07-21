@@ -64,14 +64,6 @@
   [m]
   (not (turns? m)))
 
-(defn into-turns
-  [m]
-  (assoc m :time-mode :turns))
-
-(defn into-real
-  [m]
-  (assoc m :time-mode :real))
-
 ;; CREATURES
 
 (defn natural-maximum-of
@@ -114,6 +106,14 @@
   [m e resource cost]
   (<= cost (amount-of m e resource)))
 
+(defn creatures
+  [m]
+  (attr/with m :type :creature))
+
+(defn refresh-creatures
+  [m]
+  (reduce #(refill %1 %2 :ap) m (creatures m)))
+
 ;; PLAYERS
 
 (defn player?
@@ -127,6 +127,10 @@
 (defn playern
   [m n]
   (nth (seq (players m)) n nil))
+
+(defn refresh-players
+  [m]
+  (reduce #(refill %1 %2 :ap) m (players m)))
 
 ;; SELECTION
 
@@ -226,3 +230,15 @@
     (-> (put m e pt)
         (expend e :ap 1))
     m))
+
+;; SWITCH TIME
+
+(defn into-turns
+  [m]
+  (assoc m :time-mode :turns))
+
+(defn into-real
+  [m]
+  (let [m (assoc m :time-mode :real)]
+    (-> m
+        refresh-creatures)))

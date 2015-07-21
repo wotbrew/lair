@@ -110,6 +110,11 @@
       (global/send-game #(-> (game/unselect-all %) (game/select-many xs))))
     (reset! global/lasso global/unit-rect)))
 
+(defmethod handle! :debug-switch-time
+  [_]
+  (if (game/turns? @global/game)
+    (global/into-real)
+    (global/into-turns)))
 
 (defn publish!
   [event-or-events]
