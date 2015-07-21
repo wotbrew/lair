@@ -54,6 +54,80 @@
   [m ents]
   (reduce delete m ents))
 
+;; TIME
+
+(defn turns?
+  [m]
+  (= (:time-mode m) :turns))
+
+(defn real?
+  [m]
+  (not (turns? m)))
+
+(defn into-turns
+  [m]
+  (assoc m :time-mode :turns))
+
+(defn into-real
+  [m]
+  (assoc m :time-mode :real))
+
+;; CREATURES
+
+(defn natural-maximum-of
+  [m e resource]
+  10.0)
+
+(defn amount-of
+  [m e resource]
+  (or (:current (attr/find m e resource))
+      (natural-maximum-of m e resource)))
+
+(defn maximum-of
+  [m e resource]
+  (or (:maximum (attr/find m e resource))
+      (natural-maximum-of m e resource)))
+
+(defn refill
+  ([m e resource]
+    (refill m e resource 1))
+  ([m e resource mult]
+   (attr/update m e resource assoc :current (* mult (maximum-of m e resource)))))
+
+(defmulti expend (fn [m e resource amount] resource))
+
+(defn expend*
+  [m e resource amount]
+  (attr/update m e resource assoc :current (max 0 (- (amount-of m e resource) amount))))
+
+(defmethod expend :default
+  [m e resource amount]
+  (expend* m e resource amount))
+
+(defmethod expend :ap
+  [m e resource amount]
+  (if (turns? m)
+    (expend* m e resource amount)
+    m))
+
+(defn can-afford?
+  [m e resource cost]
+  (<= cost (amount-of m e resource)))
+
+;; PLAYERS
+
+(defn player?
+  [m e]
+  (attr/find m e :player?))
+
+(defn players
+  [m]
+  (attr/with m :player? true))
+
+(defn playern
+  [m n]
+  (nth (seq (players m)) n nil))
+
 ;; SELECTION
 
 (defn unselect
@@ -64,7 +138,7 @@
   [m e]
   (let [atts (attr/all m e)]
     (and (not (:selected? atts))
-         (isa? (:type atts) :creature))))
+         (player? m e))))
 
 (defn select
   [m e]
@@ -135,16 +209,20 @@
   ([m attrs map layer points]
    (reduce #(put-create %1 attrs %2 map layer) m points)))
 
+(defn can-step-ignoring-cost?
+  [m e pt]
+  (when-let [p (pos/pt m e)]
+    (point/adjacent p pt)))
+
+(defn can-step?
+  [m e pt]
+  (and
+    (can-step-ignoring-cost? m e pt)
+    (can-afford? m e :ap 1)))
+
 (defn step
   [m e pt]
-  (if-let [p (pos/pt m e)]
-    (if (point/adjacent? p pt)
-      (put m e pt)
-      m)
+  (if (can-step? m e pt)
+    (-> (put m e pt)
+        (expend e :ap 1))
     m))
-
-;; PLAYERS
-
-(defn players
-  [m]
-  (attr/with m :player? true))

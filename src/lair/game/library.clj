@@ -9,7 +9,7 @@
    :default-layer pos/flag-layer})
 
 (def creature
-  {:sprite :goblin-slave
+  {:sprite :human-male
    :type :creature
    :solid? true
    :player? true

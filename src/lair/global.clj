@@ -135,6 +135,16 @@
         [xc yc] (cam/unproject @game-camera x y)]
     (assoc pt-or-rect 0 xc 1 yc)))
 
+;; API - TIME
+
+(defn into-turns
+  []
+  (send-game game/into-turns))
+
+(defn into-real
+  []
+  (send-game game/into-real))
+
 ;; API - SELECTION
 
 (defn select!
@@ -153,7 +163,7 @@
   [e]
   (send-game game/select-only e))
 
-;; API - Questions
+;; API - ENTITIES
 
 (defn entity-isa?
   [e type]
@@ -167,7 +177,54 @@
   []
   (game/players @game))
 
-;; INPUT - MOUSE
+(defn playern
+  [n]
+  (game/playern @game n))
+
+;; API - CREATING STUFF
+
+(defn put-create-many!
+  [attrs map pts]
+  (send-game game/put-create-many attrs map pts))
+
+;; API - POSITION
+
+(defn pos-of
+  [e]
+  (pos/of @game e))
+
+(defn point-of
+  [e]
+  (:pt (pos-of e)))
+
+(defn put!
+  [e pt]
+  (send-game game/put e pt))
+
+(defn step!
+  [e pt]
+  (send-game game/step e pt))
+
+;; API - PATHING
+
+(def ^ExecutorService path-executor Agent/pooledExecutor)
+
+(defn path
+  ([e pt]
+   (if-let [p (pos-of e)]
+     (path (:map p) (:pt p) pt)
+     (delay nil)))
+  ([map [x y] [x2 y2]]
+   (path map x y x2 y2))
+  ([map x y x2 y2]
+   (let [g @game
+         pred #(not (game/solid-at? g % map))]
+     (if (pred (point/point x2 y2))
+       (let [^Callable f #(point/a* pred x y x2 y2)]
+         (.submit path-executor f))
+       (delay nil)))))
+
+;; API - MOUSE
 
 (defn mouse-screen-pixel
   []
@@ -207,51 +264,6 @@
   (->> (at-mouse pos/object-layer)
        (filter creature?)
        first))
-
-
-;; API - CREATING STUFF
-
-(defn put-create-many!
-  [attrs map pts]
-  (send-game game/put-create-many attrs map pts))
-
-
-;; API - POSITION
-
-(defn pos-of
-  [e]
-  (pos/of @game e))
-
-(defn point-of
-  [e]
-  (:pt (pos-of e)))
-
-(defn put!
-  [e pt]
-  (send-game game/put e pt))
-
-(defn step!
-  [e pt]
-  (send-game game/step e pt))
-
-;; API - PATHING
-
-(def ^ExecutorService path-executor Agent/pooledExecutor)
-
-(defn path
-  ([e pt]
-   (if-let [p (pos-of e)]
-     (path (:map p) (:pt p) pt)
-     (delay nil)))
-  ([map [x y] [x2 y2]]
-    (path map x y x2 y2))
-  ([map x y x2 y2]
-    (let [g @game
-          pred #(not (game/solid-at? g % map))]
-      (if (pred (point/point x2 y2))
-        (let [^Callable f #(point/a* pred x y x2 y2)]
-          (.submit path-executor f))
-        (delay nil)))))
 
 ;; TASKS
 

@@ -114,7 +114,7 @@
 (defn right-rect
   [width height]
   (let [[gx gy gw gh] (game-rect width height)]
-    (vector (+ gx gw) 0 (- width gx gw 32) gh)))
+    (vector (+ gx gw 32) 0 (- width gx gw 32) gh)))
 
 (defn bottom-rect
   [width height]
@@ -131,34 +131,41 @@
   (let [[rx ry rw rh] (right-rect width height)]
     (vector rx (+ ry rh 32) rw (- height (+ ry rh 32)))))
 
-(defn draw-player!
-  [batch m e x y w h]
-  (gfx/draw-box! batch x y w h
-                 (if (game/selected? m e)
-                   :green
-                   :white))
-  (gfx/draw-entity! batch m e (+ x 48) (+ y 48) 64 64))
-
-(defrecord PlayerPanel [x y w h]
+(defrecord PlayerPanel [x y w h playern ap-label]
   IClickable
   (click-event [this]
     (when (mouse-in? x y w h)
-      (let [g @global/game]
-        (loop [i 0
-               players (take 3 (attr/with g :type :creature))]
-          (when (seq players)
-            (if (mouse-in? x (+ y (* i 192)) w 192)
-              {:type :select-player
-               :index i}
-              (recur (inc i) (rest players))))))))
+      {:type  :select-player
+       :index playern}))
   IDraw
-  (draw! [this batch x y]
-    (let [g @global/game]
-      (loop [i 0
-             players (take 3 (attr/with g :type :creature))]
-        (when-let [[p & tail] (seq players)]
-          (draw-player! batch g p x (+ y i) w 192)
-          (recur (+ i 192) tail))))))
+  (draw! [this batch x2 y2]
+    (let [m @global/game
+          e (game/playern m playern)]
+      (when e
+        (gfx/draw-box! batch x y (dec w) (dec h)
+                       (if (game/selected? m e)
+                         :green
+                         :white))
+        (gfx/draw-entity! batch m e (+ x 48) (+ y 48) 64 64)))))
+
+(defn player-panel
+  [x y w h playern]
+  (map->PlayerPanel
+    {:x x
+     :y y
+     :w w
+     :h h
+     :playern playern
+     :ap-label (label x y "foobar")}))
+
+(defn players-panel
+  [x y w h startn]
+  (let [n (int (/ h 192))]
+    (many
+      192
+      (into []
+            (for [n (range startn n)]
+              (player-panel x (+ (* n 192) y) w 192 n))))))
 
 (defn left-panel
   [width height]
@@ -166,14 +173,15 @@
     (many
      [(fill x y w h :black)
       (tiled (+ x w) y 32 h :blank)
-      (->PlayerPanel x y w h)])))
+      (players-panel x y w h 0)])))
 
 (defn right-panel
   [width height]
   (let [[x y w h] (right-rect width height)]
     (many
      [(fill x y w h :black)
-      (tiled (- x 32) y 32 h :blank)])))
+      (tiled (- x 32) y 32 h :blank)
+      (players-panel x y w h 3)])))
 
 (defn bottom-panel
   [width height]
@@ -195,7 +203,7 @@
   (let [[x y w h] (bottom-right-rect width height)]
     (many
      [(fill x y w h :black)
-      (tiled x (- y 32) w 32 :blank)
+      (tiled (- x 32) (- y 32) (+ w 32) 32 :blank)
       (tiled (- x 32) y 32 (+ y h) :blank)])))
 
 (defrecord GamePanel [x y w h]
@@ -216,7 +224,8 @@
       (bottom-right-panel width height)
       (many gx 0 0 16
             [(label (gdx/fps))
-             (label (global/mouse-world))])
+             (label (global/mouse-world))
+             (label (:time-mode @global/game))])
       (->Lasso :green)
       (->Mouse)
       (->GamePanel gx gy gw gh)])))

@@ -51,8 +51,8 @@
 
 (defmethod handle! :select-player
   [m]
-  (if (:index m)
-    (when-let [player (nth (seq (global/players)) (:index m) nil)]
+  (if-let [index (:index m)]
+    (when-let [player (global/playern index)]
       (handle! {:type   :select-player
                 :entity player}))
     (when-let [e (:entity m)]
