@@ -2,6 +2,7 @@
   (:require [lair.game.attr :as attr]
             [lair.game.pos :as pos]
             [lair.point :as point]
+            [lair.shape :as shape]
             [lair.util :as util]))
 
 ;; QUERY
@@ -118,11 +119,12 @@
 
 (defn player?
   [m e]
-  (attr/find m e :player?))
+  (= (attr/find m e :faction)
+     :player))
 
 (defn players
   [m]
-  (attr/with m :player? true))
+  (attr/with m :faction :player))
 
 (defn playern
   [m n]
@@ -230,6 +232,40 @@
     (-> (put m e pt)
         (expend e :ap 1))
     m))
+
+;; VIS
+
+(defn explore
+  [m map points]
+  (update-in m [::explored map] (fnil into #{}) points))
+
+(defn explored
+  [m map]
+  (-> m ::explored (get map) (or #{})))
+
+(defn opaque?
+  [m e]
+  (attr/find m e :opaque?))
+
+(defn opaque-at?
+  [m pt map]
+  (some #(opaque? m %) (pos/at m map pt)))
+
+(defn los?
+  [m e pt]
+  (when-let [pos (pos/of m e)]
+    (let [map (:map pos)
+          origin (:pt pos)]
+      (every? #(not (opaque-at? m % map))
+              (butlast (shape/line origin pt))))))
+
+(defn fov
+  [m e]
+  (if-let [[x y] (:pt (pos/of m e))]
+    (->>
+     (shape/filled-circle x y 5)
+     (into #{} (filter #(los? m e %))))
+    #{}))
 
 ;; SWITCH TIME
 

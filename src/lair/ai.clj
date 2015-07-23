@@ -1,7 +1,9 @@
 (ns lair.ai
   (:require [lair.global :as global]
+            [lair.game :as game]
             [lair.util :as util]
             [lair.point :as point]
+            [lair.shape :as shape]
             [clojure.tools.logging :refer [info error]]
             [clojure.core.async :as async :refer [<! >!]]))
 
@@ -31,44 +33,109 @@
   [e]
   100)
 
-(defn remember-path!
-  [e goal]
-  (go "remember-path!"
-    (if-let [pth (seq @(global/path e goal))]
-      (do
-        (remember! e :path pth)
-        (remember! e :path-goal goal))
-      (do (forget! e :path :path-goal)))))
+(defprotocol IBehaviour
+  (should-perform? [this e])
+  (perform! [this e]))
 
-(defn path-to!
-  [e]
-  (go "path-to!"
-    (let [st (get @ai-state e)]
-      (let [goal (:move-to st)
-            path (:path st)
-            path-goal (:path-goal st)]
-        (cond
-         (nil? goal) (forget! e :path)
-         (empty? path) (<! (remember-path! e goal))
-         (not= goal path-goal) (<! (remember-path! e goal))
+(defrecord Every [behaviours]
+  IBehaviour
+  (should-perform? [this e]
+    true)
+  (perform! [this e]
+    (async/go
+      (loop [behaviours behaviours]
+        (when-let [[head & tail] (seq behaviours)]
+          (when (should-perform? head e)
+            (<! (perform! head e)))
+          (recur tail))))))
 
-         (not (point/adjacent? (first path) (global/point-of e)))
-         (<! (remember-path! e goal)))))))
+(defrecord PEvery [behaviours]
+  IBehaviour
+  (should-perform? [this e]
+    true)
+  (perform! [this e]
+    (async/merge
+     (for [b behaviours
+           :when (should-perform? b e)]
+       (perform! b e)))))
 
-(defn step!
-  [e]
-  (go "step!"
-    (let [st (get @ai-state e)]
-      (when-let [path (seq (:path st))]
+(defrecord OneOf [behaviours]
+  IBehaviour
+  (should-perform? [this e]
+    true)
+  (perform! [this e]
+    (async/go
+      (loop [behaviours behaviours]
+        (when-let [[head & tail] (seq behaviours)]
+          (or (when (should-perform? head e) (<! (perform! head e)))
+              (recur tail)))))))
+
+(defrecord Sequence [behaviours]
+  IBehaviour
+  (should-perform? [this e]
+    true)
+  (perform! [this e]
+    (async/go
+      (loop [behaviours behaviours]
+        (when-let [[head & tail] (seq behaviours)]
+          (or (when (should-perform? head e)
+                (not= :exit (<! (perform! head e))))
+              (recur tail)))))))
+
+(defrecord FindPath []
+  IBehaviour
+  (should-perform? [this e]
+    (let [{:keys [path path-goal goal]} (get @ai-state e)]
+      (when goal
+        (or (empty? path)
+            (not= goal path-goal)
+            (not (point/adjacent? (first path) (global/point-of e)))))))
+  (perform! [this e]
+    (async/go
+      (when-let [goal (-> @ai-state (get e) :goal)]
+        (if-let [pth (seq (rest @(global/path e goal)))]
+          (do (remember! e :path pth)
+              (remember! e :path-goal goal)
+              :done)
+          (do (forget! e :path :path-goal)
+              :exit))))))
+
+(defrecord Step []
+  IBehaviour
+  (should-perform? [this e]
+    (when-let [path (seq (-> @ai-state (get e) :path))]
+      (point/adjacent? (first path) (global/point-of e))))
+  (perform! [this e]
+    (async/go
+      (when-let [path (seq (-> @ai-state (get e) :path))]
         (global/step! e (first path))
-        (remember! e :path (rest path))))))
+        (remember! e :path (rest path))
+        :done))))
+
+(defrecord Look []
+  IBehaviour
+  (should-perform? [this e]
+    (some? (global/pos-of e)))
+  (perform! [this e]
+    (async/go
+      (let [pos (global/pos-of e)
+            [x y] (:pt pos)
+            map (:map pos)
+            fov (game/fov @global/game e)]
+        (global/send-game game/explore map fov)))))
+
+(def player-tree
+  (->PEvery
+   [(->Every
+     [(->FindPath)
+      (->Step)])
+    (->Look)]))
+
 
 (defn ai-tick
   [e]
-  (go "ai-tick"
-    (<! (path-to! e))
-    (<! (step! e))
-
+  (async/go
+    (<! (perform! player-tree e))
     :wait))
 
 (defn spawn

@@ -1,12 +1,12 @@
 (ns lair.global
   (:require [lair.gdx :as gdx]
+            [lair.gdx.cam :as cam]
             [lair.game :as game]
             [lair.game.pos :as pos]
             [lair.game.attr :as attr]
             [lair.game.library :as lib]
-            [lair.gdx.cam :as cam]
-            [lair.rect :as rect]
             [lair.point :as point]
+            [lair.rect :as rect]
             [overtone.at-at :as at]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
@@ -27,14 +27,13 @@
 
 (def settings (atom (edn/read-string (slurp (io/resource "settings.edn")))))
 
-(def game (agent (let [[m id] (game/create {} lib/creature)
-                       [m id2] (game/create m lib/creature)]
-                   (-> m
-                       (game/put-create-many lib/floor :foo (rect/points 0 0 16 16))
-                       (game/put-create-many lib/wall :foo (concat (rect/edges 0 0 16 16)
-                                                                   (map #(vector 5 %) (range 5))))
-                       (game/put id [1 1] :foo pos/object-layer)
-                       (game/put id2 [6 4] :foo pos/object-layer)))))
+(def game (agent (-> {}
+                     (game/put-create-many lib/floor :foo (rect/points 0 0 16 16))
+                     (game/put-create-many lib/wall :foo (concat (rect/edges 0 0 16 16)
+                                                                 (map #(vector 5 %) (range 5))))
+
+                     (game/put-create-many lib/player :foo [[6 1] [7 1]])
+                     (game/put-create-many lib/creature :foo [[4 4] [10 10]]))))
 
 (def unit-rect (vector 0 0 0 0))
 (def lasso (atom unit-rect))

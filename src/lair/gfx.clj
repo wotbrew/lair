@@ -82,7 +82,10 @@
 
 (defn draw-map!
   [batch m map cell-size]
-  (when-let [[cw ch] cell-size]
-    (pos/sort-run! m map
-      (fn [[x y] layer e]
-        (draw-entity! batch m e (* x cw) (* y ch) cw ch)))))
+  (let [explored (game/explored m map)]
+    (when-let [[cw ch] cell-size]
+      (pos/sort-run!
+       m map
+       (fn [[x y :as pt] layer e]
+         (when (contains? explored pt)
+           (draw-entity! batch m e (* x cw) (* y ch) cw ch)))))))

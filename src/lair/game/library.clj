@@ -9,11 +9,16 @@
    :default-layer pos/flag-layer})
 
 (def creature
-  {:sprite :human-male
+  {:sprite :goblin-slave
    :type :creature
    :solid? true
-   :player? true
+   :faction :enemy
    :default-layer pos/object-layer})
+
+(def player
+  (assoc creature
+    :sprite :human-male
+    :faction :player))
 
 (def floor
   {:sprite :castle/floor
@@ -24,4 +29,5 @@
   {:sprite :castle/wall1
    :type :wall
    :solid? true
+   :opaque? true
    :default-layer pos/wall-layer})

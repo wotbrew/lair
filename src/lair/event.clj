@@ -64,7 +64,7 @@
   [m]
   (when-let [pt (:pt m)]
     (doseq [e (global/selected)]
-      (ai/remember! e :move-to pt))))
+      (ai/remember! e :goal pt))))
 
 (defmethod handle! :move-selected-to-mouse
   [m]
