@@ -99,10 +99,11 @@
             (not (point/adjacent? (first path) (global/point-of e)))))))
   (perform! [this e]
     (async/go
-      (when-let [goal (-> @ai-state (get e) :goal)]
+      (when-let [goal (recall e :goal)]
         (if-let [pth (seq (rest @(global/path e goal)))]
-          (do (remember! e :path pth)
-              (remember! e :path-goal goal)
+          (do (remember! e
+                         :path pth
+                         :path-goal goal)
               :done)
           (do (forget! e :path :path-goal)
               :exit))))))
@@ -110,11 +111,11 @@
 (defrecord Step []
   IBehaviour
   (should-perform? [this e]
-    (when-let [path (seq (-> @ai-state (get e) :path))]
+    (when-let [path (seq (recall e :path))]
       (point/adjacent? (first path) (global/point-of e))))
   (perform! [this e]
     (async/go
-      (when-let [path (seq (-> @ai-state (get e) :path))]
+      (when-let [path (seq (recall e :path))]
         (global/step! e (first path))
         (remember! e :path (rest path))
         :done))))
@@ -122,7 +123,8 @@
 (defrecord Look []
   IBehaviour
   (should-perform? [this e]
-    (some? (global/pos-of e)))
+    (and (global/pos-of e)
+         (recall e :relook?)))
   (perform! [this e]
     (async/go
       (when-let [i (recall e :relook?)]
@@ -141,14 +143,16 @@
     (->Look)]))
 
 (def enemy-tree
-  (->Every
-   [(->FindPath)
-    (->Step)]))
+  (->PEvery
+   [(->Every
+     [(->FindPath)
+      (->Step)])
+    (->Look)]))
 
 (defn ai-tick
   [e]
   (async/go
-    (when-let [tree (:tree (get @ai-state e))]
+    (when-let [tree (recall e :tree)]
       (<! (perform! tree e)))
     :wait))
 
