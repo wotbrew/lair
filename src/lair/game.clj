@@ -243,6 +243,22 @@
   [m map]
   (-> m ::explored (get map) (or #{})))
 
+(defn look
+  [m e points]
+  (if-let [map (:map (pos/of m e))]
+    (cond-> m
+            (player? m e) (explore map points)
+            :then (attr/add e :visible points))
+    m))
+
+(defn visible?
+  [m e pt]
+  (contains? (attr/find m e :visible) pt))
+
+(defn visible-to-players?
+  [m pt]
+  (some #(visible? m % pt) (players m)))
+
 (defn opaque?
   [m e]
   (attr/find m e :opaque?))

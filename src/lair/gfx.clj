@@ -80,12 +80,19 @@
   ([batch m e x y w h]
     (draw-entity!* batch m e x y w h)))
 
+(defn draw-when-not-visible?
+  [m e]
+  (not= (attr/find m e :type) :creature))
+
 (defn draw-map!
   [batch m map cell-size]
-  (let [explored (game/explored m map)]
+  (let [explored? (game/explored m map)]
     (when-let [[cw ch] cell-size]
       (pos/sort-run!
        m map
        (fn [[x y :as pt] layer e]
-         (when (contains? explored pt)
-           (draw-entity! batch m e (* x cw) (* y ch) cw ch)))))))
+         (if (game/visible-to-players? m pt)
+           (draw-entity! batch m e (* x cw) (* y ch) cw ch)
+           (when (and (explored? pt) (draw-when-not-visible? m e))
+             (gdx/with-color batch gdx/gray
+               (draw-entity! batch m e (* x cw) (* y ch) cw ch)))))))))

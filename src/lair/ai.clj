@@ -20,14 +20,21 @@
 (def ai-state (atom {}))
 
 (defn remember!
-  [e k v]
-  (swap! ai-state assoc-in [e k] v))
+  ([e k v]
+   (swap! ai-state assoc-in [e k] v))
+  ([e k v & kvs]
+   (swap! ai-state #(reduce (fn [m [k v]] (assoc-in m [e k] v)) (assoc-in % [e k] v) kvs))))
 
 (defn forget!
   ([e k]
    (swap! ai-state util/dissoc-in [e k]))
   ([e k & ks]
    (swap! ai-state #(reduce (fn [m k] (util/dissoc-in m [e k])) (util/dissoc-in % [e k]) ks))))
+
+(defn recall
+  [e k]
+  (-> (get @ai-state e)
+      (get k)))
 
 (defn ai-tick-ms
   [e]
@@ -118,11 +125,13 @@
     (some? (global/pos-of e)))
   (perform! [this e]
     (async/go
-      (let [pos (global/pos-of e)
-            [x y] (:pt pos)
-            map (:map pos)
-            fov (game/fov @global/game e)]
-        (global/send-game game/explore map fov)))))
+      (when-let [i (recall e :relook?)]
+        (global/look! e)
+        (swap! ai-state update-in [e :relook?]
+               #(if (= % i)
+                  nil
+                  %)))
+      :done)))
 
 (def player-tree
   (->PEvery
@@ -131,11 +140,16 @@
       (->Step)])
     (->Look)]))
 
+(def enemy-tree
+  (->Every
+   [(->FindPath)
+    (->Step)]))
 
 (defn ai-tick
   [e]
   (async/go
-    (<! (perform! player-tree e))
+    (when-let [tree (:tree (get @ai-state e))]
+      (<! (perform! tree e)))
     :wait))
 
 (defn spawn

@@ -184,6 +184,20 @@
   [n]
   (game/playern @game n))
 
+(defn player?
+  [e]
+  (game/player? @game e))
+
+;; API - FOV
+
+(defn fov
+  [e]
+  (game/fov @game e))
+
+(defn look!
+  [e]
+  (send-game game/look e (fov e)))
+
 ;; API - CREATING STUFF
 
 (defn put-create-many!

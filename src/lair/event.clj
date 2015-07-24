@@ -19,9 +19,23 @@
 
 (defmethod handle! :created
   [m]
-  (let [attrs (:attrs m)]
+  (let [attrs (:attrs m)
+        e (:entity m)]
     (when (= (:type attrs) :creature)
-      (ai/spawn (:entity m)))))
+      (ai/spawn e)
+      (ai/remember! e :tree
+                    (if (game/player? @global/game e)
+                      ai/player-tree
+                      ai/enemy-tree)))))
+
+(def relook-counter (atom 0))
+
+(defmethod handle! :put
+  [m]
+  (let [e (:entity m)
+        g @global/game]
+    (when (game/player? g e)
+      (ai/remember! e :relook? (swap! relook-counter inc)))))
 
 (def commands (edn/read-string (slurp (io/resource "commands.edn"))))
 
