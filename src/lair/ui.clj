@@ -253,9 +253,24 @@
       (->Mouse)
       (->GamePanel gx gy gw gh)])))
 
-(def ui (atom (delay @(gdx/go (create-main 1024 768)))))
+(def ui (atom (delay {:control @(gdx/go (create-main 1024 768))
+                      :screen :main})))
+
+(defn current-screen
+  []
+  (:screen (deref @ui)))
+
+(defn main-screen!
+  [width height]
+  (reset! ui (delay {:control @(gdx/go (create-main 1024 768))
+                     :screen :main})))
+
+(defn inventory-screen!
+  [width height]
+  (reset! ui (delay {:screen :inventory})))
 
 (defn draw-ui!
   [batch game]
-  (when-let [c (deref @ui)]
-    (draw! c batch 0 0)))
+  (when-let [ui (deref @ui)]
+    (when-let [c (:control ui)]
+      (draw! c batch 0 0))))

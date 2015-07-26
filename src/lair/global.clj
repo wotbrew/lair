@@ -39,6 +39,7 @@
 (def lasso (atom unit-rect))
 (def ai-procs (atom {}))
 
+;;move me pls
 (defn lassoing?
   ([]
     (lassoing? 1 1))
@@ -53,6 +54,12 @@
   nil)
 
 ;; API - BASICS
+
+(defn screen-size
+  []
+  (let [settings @settings]
+    (vector (:width settings (:width gdx/default-configuration))
+            (:height settings (:height gdx/default-configuration)))))
 
 (defn ensure-cell-size
   []
@@ -198,6 +205,22 @@
   [e]
   (send-game game/look e (fov e)))
 
+(defn visible
+  [e]
+  (attr/find @game e :visible))
+
+(defn visible-entities
+  [e]
+  (let [m @game
+        visible (attr/find m e :visible)
+        pos (pos/of m e)]
+    (when-let [map (:map pos)]
+      (mapcat #(pos/at m map %) visible))))
+
+(defn visible?
+  [e pt]
+  (contains? (visible e) pt))
+
 ;; API - CREATING STUFF
 
 (defn put-create-many!
@@ -213,6 +236,9 @@
 (defn point-of
   [e]
   (:pt (pos-of e)))
+
+(defn at
+  [pt])
 
 (defn put!
   [e pt]

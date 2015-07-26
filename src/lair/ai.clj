@@ -23,7 +23,7 @@
   ([e k v]
    (swap! ai-state assoc-in [e k] v))
   ([e k v & kvs]
-   (swap! ai-state #(reduce (fn [m [k v]] (assoc-in m [e k] v)) (assoc-in % [e k] v) kvs))))
+   (swap! ai-state #(reduce (fn [m [k v]] (assoc-in m [e k] v)) (assoc-in % [e k] v) (partition 2 kvs)))))
 
 (defn forget!
   ([e k]
@@ -142,12 +142,21 @@
       (->Step)])
     (->Look)]))
 
+(defrecord Examine []
+  IBehaviour
+  (should-perform? [this e]
+    true)
+  (perform! [this e]
+    (async/go
+      (let [vis (global/visible-entities e)]))))
+
 (def enemy-tree
   (->PEvery
    [(->Every
      [(->FindPath)
       (->Step)])
-    (->Look)]))
+    (->Look)
+    (->Examine)]))
 
 (defn ai-tick
   [e]

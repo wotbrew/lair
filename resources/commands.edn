@@ -7,6 +7,8 @@
  :hit {:lshift [:modifier-up]
        :left [:select :release-lasso]
        :space [:debug-switch-time]
+       :i [:inventory]
+       :g [:game]
        :f1 [{:type :select-player
              :index 0}]
        :f2 [{:type :select-player

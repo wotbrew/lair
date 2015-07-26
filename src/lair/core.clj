@@ -41,13 +41,14 @@
           input (swap! global/input gdx/input)]
       (fire-events! input)
 
-      (cam/update! game-camera)
-      (gdx/with-batch
-        batch
-        (gdx/with-camera
+      (when (= (:screen (deref @ui/ui)) :main)
+        (cam/update! game-camera)
+        (gdx/with-batch
           batch
-          game-camera
-          (gfx/draw-map! batch game :foo (global/ensure-cell-size))))
+          (gdx/with-camera
+            batch
+            game-camera
+            (gfx/draw-map! batch game :foo (global/ensure-cell-size)))))
       (cam/update! ui-camera)
       (gdx/with-batch
         batch

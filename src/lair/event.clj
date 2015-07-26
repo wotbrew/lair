@@ -99,30 +99,43 @@
 
 (defmethod handle! :select
   [_]
-  (when-let [click-event (ui/click-event (deref @ui/ui) 0 0)]
-    (handle! click-event)))
+  (let [ui (:control (deref @ui/ui))]
+    (when-let [click-event (ui/click-event ui 0 0)]
+      (handle! click-event))))
 
 (defmethod handle! :lasso
   [_]
-  (let [[mx my] (global/mouse-screen-pixel)]
-    (if (global/lassoing?)
-      (swap! global/lasso
-             #(let [[_ _ _ _ ox oy] %
-                    w (Math/abs (int (- mx ox)))
-                    h (Math/abs (int (- my oy)))
-                    x (min ox mx)
-                    y (min oy my)]
-                (vector x y w h ox oy)))
-      (reset! global/lasso (vector mx my 1 1 mx my)))))
+  (when (= :main (ui/current-screen))
+      (let [[mx my] (global/mouse-screen-pixel)]
+        (if (global/lassoing?)
+          (swap! global/lasso
+                 #(let [[_ _ _ _ ox oy] %
+                        w (Math/abs (int (- mx ox)))
+                        h (Math/abs (int (- my oy)))
+                        x (min ox mx)
+                        y (min oy my)]
+                    (vector x y w h ox oy)))
+          (reset! global/lasso (vector mx my 1 1 mx my))))))
 
 (defmethod handle! :release-lasso
   [_]
-  (let [[_ _ w h :as r] (global/unproject @global/lasso)
-        xs (when (< 10 w) (< 10 h)
-             (pos/in @global/game :foo pos/object-layer (rect/scale r (/ 1 32))))]
-    (when xs
-      (global/send-game #(-> (game/unselect-all %) (game/select-many xs))))
-    (reset! global/lasso global/unit-rect)))
+  (when (= :main (ui/current-screen))
+    (let [[_ _ w h :as r] (global/unproject @global/lasso)
+          xs (when (< 10 w) (< 10 h)
+                   (pos/in @global/game :foo pos/object-layer (rect/scale r (/ 1 32))))]
+      (when xs
+        (global/send-game #(-> (game/unselect-all %) (game/select-many xs))))
+      (reset! global/lasso global/unit-rect))))
+
+(defmethod handle! :inventory
+  [_]
+  (let [[w h] (global/screen-size)]
+    (ui/inventory-screen! w h)))
+
+(defmethod handle! :game
+  [_]
+  (let [[w h] (global/screen-size)]
+    (ui/main-screen! w h)))
 
 (defmethod handle! :debug-switch-time
   [_]
