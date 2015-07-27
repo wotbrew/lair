@@ -248,7 +248,8 @@
       (many gx 0 0 16
             [(label (gdx/fps))
              (label (global/mouse-world))
-             (label (:time-mode @global/game))])
+             (label (if (global/turns?) "turns" "real"))
+             (label (global/turn-of))])
       (->Lasso :green)
       (->Mouse)
       (->GamePanel gx gy gw gh)])))

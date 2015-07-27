@@ -10,6 +10,10 @@
   [m e k]
   (-> m ::eav (get e) (get k)))
 
+(defn distinct-vals
+  [m k]
+  (-> m ::ave (get k) keys))
+
 (defn with
   [m k v]
   (-> m ::ave (get k) (get v)))

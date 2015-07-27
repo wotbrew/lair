@@ -123,8 +123,9 @@
     (let [[_ _ w h :as r] (global/unproject @global/lasso)
           xs (when (< 10 w) (< 10 h)
                    (pos/in @global/game :foo pos/object-layer (rect/scale r (/ 1 32))))]
-      (when xs
-        (global/send-game #(-> (game/unselect-all %) (game/select-many xs))))
+      (when (seq xs)
+        (global/send-game
+         #(-> (game/unselect-all %) (game/select-many xs))))
       (reset! global/lasso global/unit-rect))))
 
 (defmethod handle! :inventory
@@ -142,6 +143,10 @@
   (if (game/turns? @global/game)
     (global/into-real)
     (global/into-turns)))
+
+(defmethod handle! :next-turn
+  [_]
+  (global/next-turn))
 
 (defn publish!
   [event-or-events]

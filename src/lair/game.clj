@@ -59,11 +59,20 @@
 
 (defn turns?
   [m]
-  (= (:time-mode m) :turns))
+  (= (::time-mode m) :turns))
 
 (defn real?
   [m]
   (not (turns? m)))
+
+(defn turn-of
+  [m]
+  (::turn m :player))
+
+(defn turn-of?
+  [m e]
+  (or (real? m)
+      (= (turn-of m) (attr/find m e :faction))))
 
 ;; CREATURES
 
@@ -107,13 +116,24 @@
   [m e resource cost]
   (<= cost (amount-of m e resource)))
 
+(defn can-act?
+  [m e]
+  (and
+   (turn-of? m e)
+   (can-afford? m e :ap 1)))
+
 (defn creatures
   [m]
   (attr/with m :type :creature))
 
+(defn refresh
+  [m coll]
+  (reduce #(refill %1 %2 :ap) m coll))
+
 (defn refresh-creatures
   [m]
-  (reduce #(refill %1 %2 :ap) m (creatures m)))
+  (refresh m (creatures m)))
+
 
 ;; PLAYERS
 
@@ -132,25 +152,26 @@
 
 (defn refresh-players
   [m]
-  (reduce #(refill %1 %2 :ap) m (players m)))
+  (refresh m (players m)))
+
+;; ENEMIES
+
+(defn enemies
+  [m]
+  (attr/with m :faction :enemy))
+
+(defn refresh-enemies
+  [m]
+  (refresh m (enemies m)))
+
+(defn refresh-for-turn
+  [m]
+  (case (turn-of m)
+    :player (refresh-players m)
+    :enemy (refresh-enemies m)
+    m))
 
 ;; SELECTION
-
-(defn unselect
-  [m e]
-  (attr/remove m e :selected?))
-
-(defn can-select?
-  [m e]
-  (let [atts (attr/all m e)]
-    (and (not (:selected? atts))
-         (player? m e))))
-
-(defn select
-  [m e]
-  (if (can-select? m e)
-    (attr/add m e :selected? true)
-    m))
 
 (defn selected
   [m]
@@ -160,9 +181,29 @@
   [m e]
   (attr/find m e :selected?))
 
+(defn unselect
+  [m e]
+  (attr/remove m e :selected?))
+
+(defn can-select?
+  [m e]
+  (let [atts (attr/all m e)]
+    (and (not (:selected? atts))
+         (player? m e)
+         (turn-of? m e))))
+
 (defn unselect-all
   [m]
   (reduce unselect m (selected m)))
+
+(defn select
+  [m e]
+  (if (can-select? m e)
+    (cond->
+     m
+     (turns? m) (unselect-all)
+     :then (attr/add e :selected? true))
+    m))
 
 (defn select-only
   [m e]
@@ -172,6 +213,18 @@
 (defn select-many
   [m coll]
   (reduce select m coll))
+
+(defn select-first
+  [m]
+  (select-only m (first (players m))))
+
+(defn remember-selection
+  [m]
+  (assoc m ::last-selected (selected m)))
+
+(defn restore-selection
+  [m]
+  (select-many m (::last-selected m)))
 
 ;; SOLIDITY
 
@@ -223,6 +276,7 @@
 (defn can-step?
   [m e pt]
   (and
+    (can-act? m e)
     (can-step-ignoring-cost? m e pt)
     (can-afford? m e :ap 1)))
 
@@ -285,12 +339,45 @@
 
 ;; SWITCH TIME
 
+(defmulti next-turn* (fn [m] (turn-of m)))
+
+(defmethod next-turn* :default
+  [m]
+  m)
+
+(defmethod next-turn* :player
+  [m]
+  (-> m
+      refresh-players
+      restore-selection
+      select-first))
+
+(defmethod next-turn* :enemy
+  [m]
+  (-> m
+      refresh-enemies
+      remember-selection
+      unselect-all))
+
+(defn force-turn
+  [m faction]
+  (-> (assoc m ::turn faction)
+      next-turn*))
+
+(defn next-turn
+  [m]
+  (force-turn m
+   (case (turn-of m)
+     :player :enemy
+     :enemy :player)))
+
 (defn into-turns
   [m]
-  (assoc m :time-mode :turns))
+  (-> (assoc m ::time-mode :turns)
+      (force-turn :player)))
 
 (defn into-real
   [m]
-  (let [m (assoc m :time-mode :real)]
+  (let [m (assoc m ::time-mode :real)]
     (-> m
         refresh-creatures)))

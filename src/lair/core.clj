@@ -40,7 +40,6 @@
           game @global/game
           input (swap! global/input gdx/input)]
       (fire-events! input)
-
       (when (= (:screen (deref @ui/ui)) :main)
         (cam/update! game-camera)
         (gdx/with-batch

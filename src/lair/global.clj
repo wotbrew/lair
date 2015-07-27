@@ -147,6 +147,18 @@
   []
   (game/turns? @game))
 
+(defn turn-of
+  []
+  (game/turn-of @game))
+
+(defn turn-of?
+  [e]
+  (game/turn-of? @game e))
+
+(defn next-turn
+  []
+  (send-game game/next-turn))
+
 (defn into-turns
   []
   (send-game game/into-turns))
@@ -318,11 +330,11 @@
 
 (defn refresh-flags!
   []
-  (if-let [e (and (turns?) (first (selected)))]
-    (when-let [pos (pos/of @game e)]
+  (let [e (first (selected))]
+    (if-let [pos (and (turns?) (turn-of? e) (pos-of e))]
       (let [path (rest @(path e (mouse-world)))]
         (send-game #(-> (game/clear % (game/by-type-of % lib/yellow-flag))
-                        (game/put-create-many lib/yellow-flag (:map pos) path)))))
-    (send-game #(game/clear % (game/by-type-of % lib/yellow-flag)))))
+                        (game/put-create-many lib/yellow-flag (:map pos) path))))
+      (send-game #(game/clear % (game/by-type-of % lib/yellow-flag))))))
 
 (at/every 125 refresh-flags! task-pool)
