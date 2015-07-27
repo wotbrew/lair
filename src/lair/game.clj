@@ -362,7 +362,9 @@
 (defn force-turn
   [m faction]
   (-> (assoc m ::turn faction)
-      next-turn*))
+      next-turn*
+      (event {:type :new-turn
+              :faction faction})))
 
 (defn next-turn
   [m]
@@ -374,10 +376,12 @@
 (defn into-turns
   [m]
   (-> (assoc m ::time-mode :turns)
-      (force-turn :player)))
+      (force-turn :player)
+      (event :into-turns)))
 
 (defn into-real
   [m]
   (let [m (assoc m ::time-mode :real)]
     (-> m
-        refresh-creatures)))
+        refresh-creatures
+        (event :into-real))))

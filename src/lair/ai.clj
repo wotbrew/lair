@@ -142,21 +142,11 @@
       (->Step)])
     (->Look)]))
 
-(defrecord Examine []
-  IBehaviour
-  (should-perform? [this e]
-    true)
-  (perform! [this e]
-    (async/go
-      (let [vis (global/visible-entities e)]))))
-
 (def enemy-tree
   (->PEvery
    [(->Every
      [(->FindPath)
-      (->Step)])
-    (->Look)
-    (->Examine)]))
+      (->Step)])]))
 
 (defn ai-tick
   [e]
@@ -181,3 +171,7 @@
                  (do (info "AI thread exiting")
                      (swap! ai-threads dissoc e)
                      (swap! ai-state dissoc e))))))))
+
+(defn delete!
+  [e]
+  (swap! ai-threads dissoc e))

@@ -15,7 +15,14 @@
 
 (defmethod handle! :default
   [m]
-  (trace "Unknown event" m))
+  (info "Unknown event" m))
+
+(defmethod handle! :deleted
+  [m]
+  (let [e (:entity m)
+        attrs (attr/all m e)]
+    (when (= (:type attrs) :creature)
+      (ai/delete! e))))
 
 (defmethod handle! :created
   [m]
