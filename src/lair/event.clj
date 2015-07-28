@@ -41,7 +41,7 @@
   [m]
   (let [e (:entity m)
         g @global/game]
-    (when (game/player? g e)
+    (if (game/creature? g e)
       (ai/remember! e :relook? (swap! relook-counter inc)))))
 
 (def commands (edn/read-string (slurp (io/resource "commands.edn"))))
@@ -129,7 +129,7 @@
   (when (= :main (ui/current-screen))
     (let [[_ _ w h :as r] (global/unproject @global/lasso)
           xs (when (< 10 w) (< 10 h)
-                   (pos/in @global/game :foo pos/object-layer (rect/scale r (/ 1 32))))]
+                   (pos/in @global/game :foo pos/object-layer (rect/points (rect/scale r (/ 1 32)))))]
       (when (seq xs)
         (global/send-game
          #(-> (game/unselect-all %) (game/select-many xs))))

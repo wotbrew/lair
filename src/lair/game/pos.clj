@@ -1,6 +1,7 @@
 (ns lair.game.pos
   (:require [lair.game.attr :as attr]
             [lair.rect :as rect]
+            [lair.point :as point]
             [lair.util :as util]))
 
 ;;layers
@@ -64,6 +65,10 @@
   [m e]
   (:pt (of m e)))
 
+(defn map-of
+  [m e]
+  (:map (of m e)))
+
 (defn at
   ([m map pt layer index]
     (-> m ::mpli (get map) (get pt) (get layer) (get index)))
@@ -74,18 +79,25 @@
   ([m map]
     (-> m ::mp (get map) vals)))
 
-(defn in-points
+(defn in
   ([m map points]
    (mapcat #(at m map %) points))
   ([m map layer points]
    (mapcat #(at m map % layer) points)))
 
-(defn in
-  ([m map [x y w h]]
-   (in m map x y w h))
-  ([m map x y w h]
-   (in-points m map (rect/points x y w h)))
-  ([m map layer [x y w h]]
-   (in m map layer x y w h))
-  ([m map layer x y w h]
-   (in-points m map layer (rect/points x y w h))))
+(defmulti distance (fn [m e thing] (class thing)))
+
+(defmethod distance :default
+  [m e other]
+  (when-let [b (pt m other)]
+    (distance m e b)))
+
+(defmethod distance clojure.lang.IPersistentVector
+  [m e pt]
+  (when-let [a (lair.game.pos/pt m e)]
+    (point/manhattan a pt)))
+
+(defn adjacent
+  [m e]
+  (when-let [pt (lair.game.pos/pt m e)]
+    (point/adjacent pt)))

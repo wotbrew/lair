@@ -126,6 +126,10 @@
   [m]
   (attr/with m :type :creature))
 
+(defn creature?
+  [m e]
+  (entity-isa? m e :creature))
+
 (defn refresh
   [m coll]
   (reduce #(refill %1 %2 :ap) m coll))
@@ -134,6 +138,10 @@
   [m]
   (refresh m (creatures m)))
 
+(defn creatures-in
+  [m map points]
+  (->> (pos/in m map pos/object-layer points)
+       (filter #(creature? m %))))
 
 ;; PLAYERS
 
@@ -271,7 +279,7 @@
 (defn can-step-ignoring-cost?
   [m e pt]
   (when-let [p (pos/pt m e)]
-    (point/adjacent p pt)))
+    (point/adjacent? p pt)))
 
 (defn can-step?
   [m e pt]
@@ -286,6 +294,28 @@
     (-> (put m e pt)
         (expend e :ap 1))
     m))
+
+;; POSITION UTIL
+
+(defn possible-adjacent
+  [m e target]
+  (when-let [map (pos/map-of m e)]
+    (sort-by #(pos/distance m e %)
+             (filter
+              #(not (solid-at? m % map))
+              (pos/adjacent m target)))))
+
+(defn target-adjacent
+  [m e target]
+  (first (possible-adjacent m e target)))
+
+(defn adjacent?
+  [m e target]
+  (let [a (pos/of m e)
+        b (pos/of m target)]
+    (and a b
+         (= (:map a) (:map b))
+         (point/adjacent? (:pt a) (:pt b)))))
 
 ;; VIS
 

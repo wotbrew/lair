@@ -135,6 +135,31 @@
                   %)))
       :done)))
 
+(defrecord Target []
+  IBehaviour
+  (should-perform? [this e]
+    (not (recall e :target)))
+  (perform! [this e]
+    (async/go
+      (when-let [targets (->> (global/visible-creatures e)
+                              (filter global/player?)
+                              seq)]
+        (remember! e :target (first targets))
+        :done))))
+
+(defrecord MoveToAttack []
+  IBehaviour
+  (should-perform? [this e]
+    (recall e :target))
+  (perform! [this e]
+    (async/go
+      (when-let [target (recall e :target)]
+        (if (global/adjacent? e target)
+          :done
+          (when-let [adj (global/target-adjacent e target)]
+            (remember! e :goal adj)
+            :done))))))
+
 (def player-tree
   (->PEvery
    [(->Every
@@ -146,7 +171,10 @@
   (->PEvery
    [(->Every
      [(->FindPath)
-      (->Step)])]))
+      (->Step)])
+    (->Look)
+    (->Target)
+    (->MoveToAttack)]))
 
 (defn ai-tick
   [e]

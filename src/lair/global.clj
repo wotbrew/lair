@@ -207,32 +207,6 @@
   [e]
   (game/player? @game e))
 
-;; API - FOV
-
-(defn fov
-  [e]
-  (game/fov @game e))
-
-(defn look!
-  [e]
-  (send-game game/look e (fov e)))
-
-(defn visible
-  [e]
-  (attr/find @game e :visible))
-
-(defn visible-entities
-  [e]
-  (let [m @game
-        visible (attr/find m e :visible)
-        pos (pos/of m e)]
-    (when-let [map (:map pos)]
-      (mapcat #(pos/at m map %) visible))))
-
-(defn visible?
-  [e pt]
-  (contains? (visible e) pt))
-
 ;; API - CREATING STUFF
 
 (defn put-create-many!
@@ -249,8 +223,21 @@
   [e]
   (:pt (pos-of e)))
 
+(defn map-of
+  [e]
+  (:map (pos-of e)))
+
 (defn at
-  [pt])
+  ([map]
+   (pos/at @game map))
+  ([map pt]
+   (pos/at @game map pt))
+  ([map pt layer]
+   (pos/at @game map pt layer)))
+
+(defn creatures-in
+  [map points]
+  (game/creatures-in @game map points))
 
 (defn put!
   [e pt]
@@ -259,6 +246,44 @@
 (defn step!
   [e pt]
   (send-game game/step e pt))
+
+(defn distance
+  [a b]
+  (pos/distance @game a b))
+
+(defn target-adjacent
+  [e target]
+  (game/target-adjacent @game e target))
+
+(defn adjacent?
+  [e target]
+  (game/adjacent? @game e target))
+
+;; API - FOV
+
+(defn fov
+  [e]
+  (game/fov @game e))
+
+(defn look!
+  [e]
+  (send-game game/look e (fov e)))
+
+(defn visible
+  [e]
+  (attr/find @game e :visible))
+
+(defn visible-entities
+  [e]
+  (pos/in @game (map-of e) (visible e)))
+
+(defn visible-creatures
+  [e]
+  (creatures-in (map-of e) (visible e)))
+
+(defn visible?
+  [e pt]
+  (contains? (visible e) pt))
 
 ;; API - PATHING
 
