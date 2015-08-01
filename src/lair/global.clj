@@ -14,7 +14,6 @@
   (:import (clojure.lang Agent)
            (java.util.concurrent Executor ExecutorService)))
 
-
 ;; STATE
 
 (defonce batch (delay @(gdx/go (gdx/batch))))
@@ -184,6 +183,12 @@
 (defn select-only!
   [e]
   (send-game game/select-only e))
+
+(defn flexible-select!
+  [e]
+  (if @input-modifier
+    (select! e)
+    (select-only! e)))
 
 ;; API - ENTITIES
 

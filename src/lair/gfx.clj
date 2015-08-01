@@ -84,15 +84,21 @@
   [m e]
   (not= (attr/find m e :type) :creature))
 
+(def offsets (atom {}))
+
 (defn draw-map!
   [batch m map cell-size]
-  (let [explored? (game/explored m map)]
+  (let [explored? (game/explored m map)
+        offsets @offsets]
     (when-let [[cw ch] cell-size]
       (pos/sort-run!
        m map
        (fn [[x y :as pt] layer e]
-         (if (game/visible-to-players? m pt)
-           (draw-entity! batch m e (* x cw) (* y ch) cw ch)
-           (when (and (explored? pt) (draw-when-not-visible? m e))
-             (gdx/with-color batch gdx/gray
-               (draw-entity! batch m e (* x cw) (* y ch) cw ch)))))))))
+         (let [[ox oy] (get offsets e)
+               ox (or ox 0)
+               oy (or oy 0)]
+           (if (game/visible-to-players? m pt)
+             (draw-entity! batch m e (+ ox (* x cw)) (+ oy (* y ch)) cw ch)
+             (when (and (explored? pt) (draw-when-not-visible? m e))
+               (gdx/with-color batch gdx/gray
+                 (draw-entity! batch m e (+ ox (* x cw)) (+ oy (* y ch)) cw ch))))))))))

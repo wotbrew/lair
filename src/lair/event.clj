@@ -7,6 +7,7 @@
             [lair.ui :as ui]
             [lair.rect :as rect]
             [lair.ai :as ai]
+            [lair.anim :as anim]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.tools.logging :refer [info warn trace]]))
@@ -70,6 +71,13 @@
   [_]
   (global/shift-cam! (global/current-cam-speed) 0))
 
+(defmethod handle! :attack
+  [m]
+  (when-let [target (:entity m)]
+    (when-let [[e] (seq (global/selected))]
+      (info e "attacked" target)
+      (anim/add! (anim/attack-jiggle e target)))))
+
 (defmethod handle! :select-player
   [m]
   (if-let [index (:index m)]
@@ -77,9 +85,7 @@
       (handle! {:type   :select-player
                 :entity player}))
     (when-let [e (:entity m)]
-      (if @global/input-modifier
-        (global/select! e)
-        (global/select-only! e)))))
+      (global/flexible-select! e))))
 
 (defmethod handle! :move-selected-to
   [m]
@@ -95,8 +101,11 @@
 (defmethod handle! :select-at-mouse
   [m]
   (if-let [e (global/creature-at-mouse)]
-    (handle! {:type :select-player
-              :entity e})
+    (if (global/player? e)
+      (handle! {:type :select-player
+                :entity e})
+      (handle! {:type :attack
+                :entity e}))
     (handle! :move-selected-to-mouse)))
 
 (defmethod handle! :select-game

@@ -4,14 +4,31 @@
   (:import [java.util PriorityQueue HashSet]))
 
 (def point tuple/vector)
+(def unit (point 0 0))
+
 
 (defn add
-  ([[x y] [x2 y2]]
-   (add x y x2 y2))
+  ([[x y] n-or-pt]
+   (if (vector? n-or-pt)
+     (let [[x2 y2] n-or-pt]
+       (add x y x2 y2))
+     (add x y n-or-pt n-or-pt)))
   ([[x y] x2 y2]
    (add x y x2 y2))
   ([x y x2 y2]
    (point (+ x x2) (+ y y2))))
+
+(defn mult
+  ([[x y] n-or-pt]
+   (if (vector? n-or-pt)
+     (let [[x2 y2] n-or-pt]
+       (mult x y x2 y2))
+     (mult x y n-or-pt n-or-pt)))
+  ([[x y] x2 y2]
+   (mult x y x2 y2))
+  ([x y x2 y2]
+   (point (* x x2) (* y y2))))
+
 
 (def north (vector 0 -1))
 (def south (vector 0 1))
@@ -64,6 +81,13 @@
   ([x y x2 y2]
    (+ (Math/abs (int (- x x2)))
       (Math/abs (int (- y y2))))))
+
+(defn direction
+  ([[x y] [x2 y2]]
+   (direction x y x2 y2))
+  ([x y x2 y2]
+   (point (compare x2 x)
+          (compare y2 y))))
 
 ;;path finding
 (deftype A*Node [pt ^int g ^int h parent]

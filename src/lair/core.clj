@@ -6,7 +6,8 @@
             [lair.global :as global]
             [lair.event :as event]
             [clojure.tools.logging :refer [error info warn]]
-            [lair.gdx.cam :as cam])
+            [lair.gdx.cam :as cam]
+            [lair.anim :as anim])
   (:import [java.util.concurrent ExecutorService]))
 
 ;; GO FASTER STRIPES
@@ -38,7 +39,8 @@
           game-camera @global/game-camera
           ui-camera @global/ui-camera
           game @global/game
-          input (swap! global/input gdx/input)]
+          input (swap! global/input gdx/input)
+          anims (future (anim/animate-all! (gdx/delta)))]
       (fire-events! input)
       (when (= (:screen (deref @ui/ui)) :main)
         (cam/update! game-camera)
@@ -54,7 +56,8 @@
         (gdx/with-camera
           batch
           ui-camera
-          (ui/draw-ui! batch game))))
+          (ui/draw-ui! batch game)))
+      @anims)
     (catch Throwable e
       (error e "An error occurred rendering frame")
       (println e)
