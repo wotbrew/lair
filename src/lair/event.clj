@@ -76,7 +76,7 @@
   (when-let [target (:entity m)]
     (when-let [[e] (seq (global/selected))]
       (info e "attacked" target)
-      (anim/add! (anim/attack-jiggle e target)))))
+      (anim/jiggle e target))))
 
 (defmethod handle! :select-player
   [m]

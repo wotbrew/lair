@@ -1,52 +1,25 @@
 (ns lair.anim
   (:require [lair.global :as global]
             [lair.gfx :as gfx]
-            [lair.point :as point]))
+            [lair.point :as point]
+            [clojure.core.async :refer [<! >! go chan] :as async]))
 
-(def counter (atom 0))
-(def state (atom {}))
-
-(defn add!
-  [animation]
-  (when animation
-    (let [id (swap! counter inc)]
-      (swap! state assoc id animation)
-      id)))
-
-(defn remove!
-  [id]
-  (swap! state dissoc id))
-
-(defprotocol IAnim
-  (animate! [this delta]))
-
-(def ^:dynamic *jiggle-speed* 50)
-(def ^:dynamic *jiggle-distance* 16)
+(def jiggle-amount 8)
+(def jiggle-ms 33)
 
 (defn jiggle
-  [offset origin direction delta]
-  (let [[x y] (point/mult offset (* *jiggle-speed* delta))]
-    (if (< (Math/abs x) *jiggle-distance*)
-      nil)))
-
-(defrecord AttackJiggle [e direction]
-  IAnim
-  (animate! [this delta]
-    (swap! gfx/offsets update e
-           (fnil point/add point/unit)
-           (point/mult direction (* *jiggle-speed* delta)))
-    nil))
-
-(defn attack-jiggle
-  [e target]
-  (let [a (global/point-of e)
-        b (global/point-of target)]
-    (when (and a b)
-      (->AttackJiggle e (point/direction a b)))))
-
-(defn animate-all!
-  [delta]
-  (reduce-kv (fn [_ k v]
-               (animate! v delta))
-             nil
-             @state))
+  [a b]
+  (let [pa (global/point-of a)
+        pb (when pa (global/point-of b))
+        direction (when pb (point/direction pa pb))
+        origin (when direction (point/direction pb pa))
+        offset (point/mult direction jiggle-amount)]
+    (async/go-loop
+      [[x y :as o] offset]
+      (if (and (<= -1 x 1) (<= -1 y 1))
+        (do
+          (swap! gfx/offsets dissoc a))
+        (do
+          (swap! gfx/offsets assoc a o)
+          (<! (async/timeout jiggle-ms))
+          (recur (point/add o origin)))))))

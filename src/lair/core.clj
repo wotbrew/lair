@@ -39,8 +39,7 @@
           game-camera @global/game-camera
           ui-camera @global/ui-camera
           game @global/game
-          input (swap! global/input gdx/input)
-          anims (future (anim/animate-all! (gdx/delta)))]
+          input (swap! global/input gdx/input)]
       (fire-events! input)
       (when (= (:screen (deref @ui/ui)) :main)
         (cam/update! game-camera)
@@ -56,8 +55,7 @@
         (gdx/with-camera
           batch
           ui-camera
-          (ui/draw-ui! batch game)))
-      @anims)
+          (ui/draw-ui! batch game))))
     (catch Throwable e
       (error e "An error occurred rendering frame")
       (println e)
