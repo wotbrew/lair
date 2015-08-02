@@ -73,7 +73,7 @@
 
 (defmethod handle! :attacked
   [{:keys [entity target report]}]
-  (info entity "attacked" target)
+  (global/log entity "attacked" target "at" (java.util.Date.))
   (anim/jiggle entity target))
 
 (defmethod handle! :attack
@@ -122,6 +122,12 @@
   (let [ui (:control (deref @ui/ui))]
     (when-let [click-event (ui/click-event ui 0 0)]
       (handle! click-event))))
+
+(defmethod handle! :hold-select
+  [_]
+  (let [ui (:control (deref @ui/ui))]
+    (when-let [hold-event (ui/hold-event ui 0 0)]
+      (handle! hold-event))))
 
 (defmethod handle! :lasso
   [_]

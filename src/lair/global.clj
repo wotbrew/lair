@@ -10,7 +10,8 @@
             [overtone.at-at :as at]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.tools.logging :refer [error warn info]])
+            [clojure.tools.logging :refer [error warn info]]
+            [clojure.string :as str])
   (:import (clojure.lang Agent)
            (java.util.concurrent Executor ExecutorService)))
 
@@ -37,6 +38,12 @@
 (def unit-rect (vector 0 0 0 0))
 (def lasso (atom unit-rect))
 (def ai-procs (atom {}))
+(def log-state (atom (list)))
+
+(defn log
+  [& txt]
+  (info "logged:" txt)
+  (swap! log-state conj (str/join " " txt)))
 
 ;;move me pls
 (defn lassoing?

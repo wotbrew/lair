@@ -17,11 +17,16 @@
 (defprotocol IClickable
   (click-event [this x2 y2]))
 
+(defprotocol IHoldable
+  (hold-event [this x2 y2]))
+
 (extend-type Object
   IDraw
   (draw! [this batch x y])
   IClickable
-  (click-event [this x2 y2]))
+  (click-event [this x2 y2])
+  IHoldable
+  (hold-event [this x2 y2]))
 
 (defrecord Label [x y text-fn font]
   IDraw
@@ -46,6 +51,9 @@
   IClickable
   (click-event [this x2 y2]
     (some #(click-event % (+ x x2) (+ y y2)) controls))
+  IHoldable
+  (hold-event [this x2 y2]
+    (some #(hold-event % (+ x x2) (+ y y2)) controls))
   IDraw
   (draw! [this batch x2 y2]
     (loop [controls controls
@@ -206,12 +214,41 @@
       (tiled (- x 32) y 32 h :blank)
       (players-panel x y w h 3)])))
 
+(defrecord LogPanel [x y w h font scroll-state]
+  IHoldable
+  (hold-event [this x2 y2]
+    (cond
+      (mouse-in? (+ x x2 w -32) (+ y y2) 32 32)
+      (swap! scroll-state #(max 0 (dec %)))
+      (mouse-in? (+ x x2 w -32) (+ y y2 h -64) 32 32)
+      (swap! scroll-state #(min (count @global/log-state) (inc %))))
+    nil)
+  IDraw
+  (draw! [this batch x2 y2]
+    (let [log @global/log-state
+          entries (take (max 0 (int (/ h 16)))
+                        (drop @scroll-state log))]
+      (loop [entries entries
+             y (+ y y2)]
+        (when-let [head (first entries)]
+          (gdx/draw-text! batch font head (+ x x2) y w)
+          (recur (rest entries) (+ y 14))))
+      (gfx/draw-sprite! batch :scroll-up (+ x x2 w -32) (+ y y2) 32 32)
+      (gfx/draw-sprite! batch :scroll-down (+ x x2 w -32) (+ y y2 h -64) 32 32))))
+
+(defn log-panel
+  [x y w h]
+  (->LogPanel x y w h
+              @global/font
+              (atom 0)))
+
 (defn bottom-panel
   [width height]
   (let [[x y w h] (bottom-rect width height)]
     (many
      [(fill x y w h :black)
-      (tiled x y w 32 :blank)])))
+      (tiled x y w 32 :blank)
+      (->LogPanel x (+ y 32) w h @global/font (atom 0))])))
 
 (defn bottom-left-panel
   [width height]

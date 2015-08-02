@@ -3,7 +3,7 @@
         :d [:cam-right]
         :s [:cam-down]
         :lshift [:modifier-down]
-        :left [:lasso]}
+        :left [:lasso :hold-select]}
  :hit {:lshift [:modifier-up]
        :left [:select :release-lasso]
        :space [:debug-switch-time]
