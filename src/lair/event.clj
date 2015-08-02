@@ -71,12 +71,16 @@
   [_]
   (global/shift-cam! (global/current-cam-speed) 0))
 
+(defmethod handle! :attacked
+  [{:keys [entity target report]}]
+  (info entity "attacked" target)
+  (anim/jiggle entity target))
+
 (defmethod handle! :attack
   [m]
   (when-let [target (:entity m)]
     (when-let [[e] (seq (global/selected))]
-      (info e "attacked" target)
-      (anim/jiggle e target))))
+      (global/attack e target))))
 
 (defmethod handle! :select-player
   [m]

@@ -367,6 +367,24 @@
      (into #{} (filter #(los? m e %))))
     #{}))
 
+;; COMBAT STUFF
+
+(defn can-attack?
+  [m e target]
+  (and
+    (can-act? m e)
+    (can-afford? m e :ap 2)
+    (adjacent? m e target)))
+
+(defn attack
+  [m e target report]
+  (if (can-attack? m e target)
+    (event m {:type   :attacked
+              :entity e
+              :target target
+              :report report})
+    m))
+
 ;; SWITCH TIME
 
 (defmulti next-turn* (fn [m] (turn-of m)))

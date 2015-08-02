@@ -290,6 +290,16 @@
   [e pt]
   (contains? (visible e) pt))
 
+;; API - COMBAT
+
+(defn can-attack?
+  [e target]
+  (game/can-attack? @game e target))
+
+(defn attack
+  [e target]
+  (send-game game/attack e target {}))
+
 ;; API - PATHING
 
 (def ^ExecutorService path-executor Agent/pooledExecutor)
